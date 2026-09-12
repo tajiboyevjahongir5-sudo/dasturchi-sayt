@@ -1,0 +1,146 @@
+[
+  {
+    "id": "a937591b-c5af-4c3c-983f-0cc3eb50d2a0",
+    "slug": "scope-va-lexical-environment",
+    "title": "1-Dars: Scope va Leksik Muhit (Lexical Environment)",
+    "status": "review",
+    "order": 1,
+    "moduleTitle": "1-Modul: JavaScript’ni Chuqurroq Tushunish"
+  },
+  {
+    "id": "9df1ea5a-6446-4b4f-94de-9a89ecfa39a3",
+    "slug": "hoisting-va-temporal-dead-zone",
+    "title": "2-Dars: Hoisting va Temporal Dead Zone (TDZ)",
+    "status": "review",
+    "order": 2,
+    "moduleTitle": "1-Modul: JavaScript’ni Chuqurroq Tushunish"
+  },
+  {
+    "id": "ac4d461d-ce2e-47bb-ac9e-f2d5587ac22a",
+    "slug": "closures-yopiq-funksiyalar",
+    "title": "3-Dars: Closures (Yopiq Funksiyalar)",
+    "status": "review",
+    "order": 3,
+    "moduleTitle": "1-Modul: JavaScript’ni Chuqurroq Tushunish"
+  },
+  {
+    "id": "6f4958e6-74d6-42d2-9414-50b3fc5fc7fb",
+    "slug": "higher-order-functions",
+    "title": "4-Dars: Higher-Order Functions (Yuqori Tartibli Funksiyalar)",
+    "status": "review",
+    "order": 4,
+    "moduleTitle": "2-Modul: Funksiyalar va Obyektlar"
+  },
+  {
+    "id": "04980a5c-ae4a-4a0f-bd33-39bdc43c76d6",
+    "slug": "callback-functions-va-asinxronlik",
+    "title": "5-Dars: Callback Funksiyalari va Asinxronlikka Kirish",
+    "status": "review",
+    "order": 5,
+    "moduleTitle": "2-Modul: Funksiyalar va Obyektlar"
+  },
+  {
+    "id": "cf3d7133-6eee-4a0d-9401-018231afd815",
+    "slug": "this-konteksti-va-boglash-usullari",
+    "title": "6-Dars: this Konteksti va Bog‘lash Usullari",
+    "status": "review",
+    "order": 6,
+    "moduleTitle": "2-Modul: Funksiyalar va Obyektlar"
+  },
+  {
+    "id": "46c791f9-33d4-4d51-9c0e-aa7cd4cbb8a6",
+    "slug": "prototype-va-prototip-merosxorligi",
+    "title": "7-Dars: Prototype va Prototip Merosxo‘rligi",
+    "status": "review",
+    "order": 7,
+    "moduleTitle": "2-Modul: Funksiyalar va Obyektlar"
+  },
+  {
+    "id": "cb21b525-0c06-4851-a04f-320bc44de7f4",
+    "slug": "call-stack-va-event-loop",
+    "title": "8-Dars: Call Stack, Web APIs va Event Loop",
+    "status": "review",
+    "order": 8,
+    "moduleTitle": "3-Modul: Asinxron JavaScript"
+  },
+  {
+    "id": "64f83cb4-02ff-4746-a02c-ab0bb810ebc2",
+    "slug": "promises-va-chaining",
+    "title": "9-Dars: Promise Obyekti va Zanjirlash (Chaining)",
+    "status": "review",
+    "order": 9,
+    "moduleTitle": "3-Modul: Asinxron JavaScript"
+  },
+  {
+    "id": "0ff93e9f-ed9e-4715-b197-b930acb5cdaa",
+    "slug": "async-await-sintaksisi",
+    "title": "10-Dars: async / await Sintaksisi",
+    "status": "review",
+    "order": 10,
+    "moduleTitle": "3-Modul: Asinxron JavaScript"
+  },
+  {
+    "id": "b4bb2f5f-06a5-403d-9226-28cc23c6f3da",
+    "slug": "async-error-handling-try-catch",
+    "title": "11-Dars: Asinxron Xatolarni Boshqarish (try/catch)",
+    "status": "review",
+    "order": 11,
+    "moduleTitle": "3-Modul: Asinxron JavaScript"
+  },
+  {
+    "id": "006e28e1-b5eb-4802-a3cd-6e11a2692560",
+    "slug": "dom-arxitekturasi-va-manipulyatsiya",
+    "title": "12-Dars: DOM Arxitekturasi va Samarali Manipulyatsiya",
+    "status": "review",
+    "order": 12,
+    "moduleTitle": "4-Modul: Brauzer Muhiti Bilan Ishlash"
+  },
+  {
+    "id": "c159b83c-c97b-4385-af07-75d950c24fda",
+    "slug": "event-bubbling-va-delegation",
+    "title": "13-Dars: Event Bubbling va Event Delegation",
+    "status": "review",
+    "order": 13,
+    "moduleTitle": "4-Modul: Brauzer Muhiti Bilan Ishlash"
+  },
+  {
+    "id": "20efeb92-0441-457e-9a23-6f41f7d1ef21",
+    "slug": "formalarni-tekshirish-form-validation",
+    "title": "14-Dars: Formalarni Real Vaqtda Tekshirish (Form Validation)",
+    "status": "review",
+    "order": 14,
+    "moduleTitle": "4-Modul: Brauzer Muhiti Bilan Ishlash"
+  },
+  {
+    "id": "866281b2-ab9b-49d6-836a-3eef8ac31683",
+    "slug": "brauzer-xotirasi-localstorage",
+    "title": "15-Dars: Brauzer Xotirasi: LocalStorage va SessionStorage",
+    "status": "review",
+    "order": 15,
+    "moduleTitle": "4-Modul: Brauzer Muhiti Bilan Ishlash"
+  },
+  {
+    "id": "16a0caa6-aa9d-4112-b93f-eef91c97e42b",
+    "slug": "debouncing-va-throttling",
+    "title": "16-Dars: Debouncing va Throttling (Samaradorlikni Oshirish)",
+    "status": "review",
+    "order": 16,
+    "moduleTitle": "4-Modul: Brauzer Muhiti Bilan Ishlash"
+  },
+  {
+    "id": "caba1b4c-8937-442f-a9b4-9c07b0e153aa",
+    "slug": "interactive-task-manager-dom-crud",
+    "title": "17-Dars: Multi-file Loyiha — Arxitektura va CRUD (Milestones 1-2)",
+    "status": "review",
+    "order": 17,
+    "moduleTitle": "5-Modul: Yakuniy Amaliy Loyiha (Multi-file Task Manager)"
+  },
+  {
+    "id": "0442dbed-e33d-4e7c-9dc7-cad562fb3550",
+    "slug": "interactive-task-manager-storage-accessibility",
+    "title": "18-Dars: Multi-file Loyiha — LocalStorage va Accessibility (Milestones 3-4)",
+    "status": "review",
+    "order": 18,
+    "moduleTitle": "5-Modul: Yakuniy Amaliy Loyiha (Multi-file Task Manager)"
+  }
+]

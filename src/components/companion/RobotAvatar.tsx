@@ -9,6 +9,7 @@ interface RobotAvatarProps {
   mood?: RobotMood;
   isSpeaking?: boolean;
   isPointing?: boolean;
+  pointingDirection?: 'left' | 'right';
   size?: number;
   className?: string;
   forceSvg?: boolean;
@@ -20,6 +21,7 @@ export function RobotAvatar({
   mood = 'idle',
   isSpeaking = false,
   isPointing = false,
+  pointingDirection = 'left',
   size = 72,
   className = '',
   forceSvg = false,
@@ -38,6 +40,7 @@ export function RobotAvatar({
           mood={mood}
           isSpeaking={isSpeaking}
           isPointing={isPointing}
+          pointingDirection={pointingDirection}
           size={size}
         />
       </div>

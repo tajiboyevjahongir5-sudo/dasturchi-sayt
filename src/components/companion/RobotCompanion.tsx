@@ -17,22 +17,37 @@ import {
   getSuccessCelebration, 
   getHintSpeech, 
   formatTextForSpeech, 
+  generateComprehensiveLectureSteps,
+  ComprehensiveLectureStep as LectureStep,
   RobotSpeechScript 
 } from './robot-dialogue';
 
-export interface LectureStep {
-  id: string;
-  elementId: string;
-  title: string;
-  pointingDirection: 'left' | 'right';
-  speechText: string;
-  displayText: string;
-}
+export type { LectureStep };
 
 export interface RobotCompanionProps {
   lessonTitle?: string;
   lessonObjective?: string;
   lessonAnalogy?: string;
+  theory?: Array<{ type?: string; content: string }>;
+  interactiveExample?: {
+    title: string;
+    code: string;
+    expectedOutput?: string;
+    lineExplanations?: Record<string, string>;
+  };
+  commonMistakes?: Array<{
+    title: string;
+    wrongCode: string;
+    correctCode: string;
+    explanation: string;
+  }>;
+  exercise?: {
+    title: string;
+    description: string;
+    instructions: string[];
+    starterCode?: string;
+    expectedConcepts?: string[];
+  };
   lastError?: {
     type?: string;
     message: string;
@@ -51,6 +66,10 @@ export function RobotCompanion({
   lessonTitle = 'Dasturlash Darsi',
   lessonObjective,
   lessonAnalogy,
+  theory,
+  interactiveExample,
+  commonMistakes,
+  exercise,
   lastError,
   userCode = '',
   isPassed = false,
@@ -127,52 +146,18 @@ export function RobotCompanion({
     };
   }, [stopSpeaking]);
 
-  // Clean title for teacher dialogue
-  const cleanTitle = lessonTitle.replace(/^(\d+-Dars:?\s*)/i, '');
-
-  // Build the complete step-by-step lecture steps
-  const lectureSteps = React.useMemo<LectureStep[]>(() => [
-    {
-      id: 'step-title',
-      elementId: 'lesson-title-section',
-      title: `1. Mavzu: ${cleanTitle}`,
-      pointingDirection: 'left',
-      speechText: `Assalomu alaykum! Bugungi darsimizda ${cleanTitle} mavzusini birgalikda o‘rganamiz. Darsni diqqat bilan kuzating, asosiy tushunchalarni birgalikda ko‘rib chiqamiz.`,
-      displayText: `🎓 **Assalomu alaykum!** Bugun biz **${cleanTitle}** mavzusini o‘rganamiz.`,
-    },
-    ...(lessonObjective ? [{
-      id: 'step-objective',
-      elementId: 'lesson-objective-section',
-      title: '2. Darsning Asosiy Maqsadi',
-      pointingDirection: 'left' as const,
-      speechText: `Ushbu darsdagi asosiy maqsadimiz: ${lessonObjective}. Buni puxta tushunib olsangiz, amaliy mashg‘ulotlarni bajarish siz uchun juda oson bo‘ladi.`,
-      displayText: `🎯 **Asosiy Maqsad:**\n${lessonObjective}`,
-    }] : []),
-    ...(lessonAnalogy ? [{
-      id: 'step-analogy',
-      elementId: 'lesson-analogy-section',
-      title: '3. Hayotiy Misol',
-      pointingDirection: 'left' as const,
-      speechText: `Mavzuni hayotimiz bilan bog‘laymiz: ${lessonAnalogy}.`,
-      displayText: `💡 **Hayotiy Misol:**\n${lessonAnalogy}`,
-    }] : []),
-    {
-      id: 'step-example',
-      elementId: 'lesson-example-section',
-      title: '4. Kod Namunasi',
-      pointingDirection: 'left',
-      speechText: `Chap tomondagi amaliy kod namunasiga e’tibor bering. Buyruqlar qanday tartibda yozilganini yaxshilab tahlil qiling.`,
-      displayText: `💻 **Kod Namunasi:**\nChap tomondagi kod namunasini ko‘rib chiqing.`,
-    },
-    {
-      id: 'step-editor',
-      elementId: 'lesson-code-editor',
-      title: '5. Amaliy Topshiriq',
-      pointingDirection: 'right',
-      speechText: `Endi navbat sizga! O‘ng tomondagi kod muharririda topshiriq shartiga mos kodni yozing va tekshirish tugmasini bosing. Agar xatolik bo‘lsa, men darhol xato qatorga borib, qanday tuzatish kerakligini tushuntirib beraman!`,
-      displayText: `🚀 **Amaliyot Vaqti!**\nMuharrirda kodingizni yozing va topshiriqni bajaring. Men yoningizdaman!`,
-    }
-  ], [cleanTitle, lessonObjective, lessonAnalogy]);
+  // Build the complete step-by-step master teacher lecture steps
+  const lectureSteps = React.useMemo<LectureStep[]>(() => {
+    return generateComprehensiveLectureSteps({
+      lessonTitle,
+      learningObjective: lessonObjective,
+      realLifeAnalogy: lessonAnalogy,
+      theory,
+      interactiveExample,
+      commonMistakes,
+      exercise,
+    });
+  }, [lessonTitle, lessonObjective, lessonAnalogy, theory, interactiveExample, commonMistakes, exercise]);
 
   const lectureStepsRef = useRef<LectureStep[]>(lectureSteps);
   useEffect(() => {

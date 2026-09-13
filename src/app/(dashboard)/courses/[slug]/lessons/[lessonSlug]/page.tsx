@@ -481,7 +481,7 @@ export default function LessonPage({
 
           {/* Common Mistakes */}
           {content.commonMistakes && content.commonMistakes.length > 0 && (
-            <div className="space-y-3 pt-2">
+            <div id="lesson-mistakes-section" className="space-y-3 pt-2">
               <h4 className="font-bold text-sm text-foreground">Ko‘p uchraydigan xatolar</h4>
               {content.commonMistakes.map((mistake, idx) => (
                 <div key={idx} className="p-3.5 rounded-xl border border-border bg-card space-y-2 text-xs">
@@ -716,6 +716,16 @@ export default function LessonPage({
         lessonTitle={lesson.title}
         lessonObjective={content.learningObjective}
         lessonAnalogy={content.realLifeAnalogy}
+        theory={content.theory}
+        interactiveExample={content.interactiveExample}
+        commonMistakes={content.commonMistakes}
+        exercise={exercise ? {
+          title: exercise.title,
+          description: exercise.description,
+          instructions: exercise.instructions,
+          starterCode: exercise.starterCode,
+          expectedConcepts: exercise.expectedConcepts,
+        } : undefined}
         lastError={codeErrors.length > 0 ? codeErrors[0] : null}
         userCode={userCode}
         isPassed={isPassed}

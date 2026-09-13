@@ -127,21 +127,256 @@ export function formatTextForSpeech(text: string): string {
   return t;
 }
 
+export interface TeacherLectureContext {
+  lessonTitle: string;
+  learningObjective?: string;
+  realLifeAnalogy?: string;
+  theory?: Array<{ type?: string; content: string }>;
+  interactiveExample?: {
+    title: string;
+    code: string;
+    expectedOutput?: string;
+    lineExplanations?: Record<string, string>;
+  };
+  commonMistakes?: Array<{
+    title: string;
+    wrongCode: string;
+    correctCode: string;
+    explanation: string;
+  }>;
+  exercise?: {
+    title: string;
+    description: string;
+    instructions: string[];
+    starterCode?: string;
+    expectedConcepts?: string[];
+  };
+}
+
+export interface ComprehensiveLectureStep {
+  id: string;
+  elementId: string;
+  title: string;
+  pointingDirection: 'left' | 'right';
+  speechText: string;
+  displayText: string;
+}
+
+/**
+ * Generate deep, step-by-step master teacher lecture explaining WHY, WHAT, WHEN,
+ * line-by-line mechanics, common mistakes, and hands-on guidance.
+ */
+export function generateComprehensiveLectureSteps(ctx: TeacherLectureContext): ComprehensiveLectureStep[] {
+  const cleanTitle = ctx.lessonTitle.replace(/^(\d+-Dars:?\s*)/i, '').trim();
+  const lowerTitle = cleanTitle.toLowerCase();
+  const lowerCode = (ctx.interactiveExample?.code || '').toLowerCase();
+  const concepts = (ctx.exercise?.expectedConcepts || []).map(c => c.toLowerCase());
+
+  const isVariables = lowerTitle.includes('o‘zgaruvchi') || lowerTitle.includes('ozgaruvchi') || 
+    lowerTitle.includes('turlar') || lowerTitle.includes('variable') || 
+    concepts.includes('const') || concepts.includes('let') || lowerCode.includes('const') || lowerCode.includes('let');
+
+  const isConditionals = lowerTitle.includes('shart') || lowerTitle.includes('if') || 
+    lowerTitle.includes('mantiq') || concepts.includes('if') || concepts.includes('else');
+
+  const isLoops = lowerTitle.includes('sikl') || lowerTitle.includes('takrorlan') || 
+    lowerTitle.includes('loop') || concepts.includes('for') || concepts.includes('while');
+
+  const steps: ComprehensiveLectureStep[] = [];
+
+  // Step 1: Lesson Title & Teacher Welcome
+  steps.push({
+    id: 'step-title',
+    elementId: 'lesson-title-section',
+    title: `1. Mavzu: ${cleanTitle}`,
+    pointingDirection: 'left',
+    speechText: formatTextForSpeech(
+      `Assalomu alaykum, aziz do‘stim! Men sizning dasturlash ustozingiz Robo-Ustozman. Bugun biz siz bilan birgalikda dasturlashning eng muhim poydevorlaridan biri bo‘lgan "${cleanTitle}" darsini to‘liq va chuqur o‘rganamiz. Diqqat bilan tinglang, har bir buyruq nima uchun va qanday yozilishini birma-bir tushuntirib beraman!`
+    ),
+    displayText: `🎓 **Mavzu: ${cleanTitle}**\n\nAssalomu alaykum! Bugungi darsimizda har bir kod nima uchun yozilishi va qanday ishlashini to‘liq tahlil qilamiz.`,
+  });
+
+  // Step 2: Learning Objective & The "Why"
+  if (ctx.learningObjective) {
+    steps.push({
+      id: 'step-objective',
+      elementId: 'lesson-objective-section',
+      title: '2. Nima Uchun Bu Kodlar Kerak?',
+      pointingDirection: 'left',
+      speechText: formatTextForSpeech(
+        `Keling, eng asosiy savolga javob beraylik: Nima uchun biz bu kodlarni yozishimiz kerak? Darsimizning asosiy maqsadi: ${ctx.learningObjective}. Dasturlashda kompyuter inson kabi ma’lumotlarni eslab qolishi, solishtirishi va ekranga chiqarishi kerak. Agar biz ma’lumotlarni qayerga va qanday saqlashni to‘g‘ri ko‘rsatmasak, kompyuter ularni xotirasida eslab qola olmaydi va dasturimiz ishlamaydi. Shuning uchun ma’lumotlarni to‘g‘ri tashkil qilish — dasturchining eng birinchi vazifasidir!`
+      ),
+      displayText: `🎯 **Nima Uchun Bu Kerak?**\n\n${ctx.learningObjective}\n\nKompyuter xotirasida ma’lumotlarni tartibli saqlash va boshqarish dasturning poydevoridir.`,
+    });
+  }
+
+  // Step 3: Real-Life Analogy
+  if (ctx.realLifeAnalogy) {
+    steps.push({
+      id: 'step-analogy',
+      elementId: 'lesson-analogy-section',
+      title: '3. Hayotiy Misol orqali Tasavvur Qilish',
+      pointingDirection: 'left',
+      speechText: formatTextForSpeech(
+        `Mavzuni tasavvur qilish oson bo‘lishi uchun hayotiy misolga qaraymiz: ${ctx.realLifeAnalogy}. Xuddi kundalik hayotimizda turli narsalarni har xil idishlarga solganimizdek, dasturlashda ham har bir ma’lumot turi o‘ziga mos shakl va qoidaga ega!`
+      ),
+      displayText: `💡 **Hayotiy Misol:**\n\n${ctx.realLifeAnalogy}\n\nHar bir ma’lumot turi o‘ziga mos idish va qoidaga ega.`,
+    });
+  }
+
+  // Step 4: Deep Theoretical Breakdown (const, let, console.log, types, etc.)
+  if (isVariables) {
+    steps.push({
+      id: 'step-theory',
+      elementId: 'lesson-theory-section',
+      title: '4. const, let va console.log Farqi',
+      pointingDirection: 'left',
+      speechText: formatTextForSpeech(
+        `Endi eng asosiy tushunchalarni o‘rganamiz: const, let va konsol log nima, nega va qachon ishlatiladi? ` +
+        `Birinchisi: o‘zgaruvchi — bu kompyuter xotirasidagi nomlangan qutidir. ` +
+        `Ikkinchisi: const — inglizcha constant, ya’ni o‘zgarmas so‘zidan olingan. Unga bir marta qiymat berilsa, uni dastur davomida boshqa o‘zgartirib bo‘lmaydi. Masalan, sayt yoki platforma nomi, matematikadagi Pi soni. Qachon ishlatiladi? Agar qiymat keyinchalik o‘zgarmasligi kerak bo‘lsa, xavfsizlik uchun har doim const tanlanadi! ` +
+        `Uchinchisi: let — o‘zgaruvchan qiymatlar uchun xizmat qiladi. Ya’ni, uning qiymati dastur ishlashi davomida yangilanib turishi mumkin. Masalan, o‘yindagi ochkolar, hisoblagichlar, dars raqami yoki foydalanuvchi yoshi. Qachon ishlatiladi? Agar qiymat keyinroq o‘zgarishi kutilsa, aynan let ishlatiladi! ` +
+        `To‘rtinchisi: konsol log — dasturchining eng asosiy ko‘zoynagidir! Agar biz o‘zgaruvchini saqlab, lekin konsol log yozmasak, kompyuter uni xotirada saqlab turaveradi, ammo natijani biz ekranda ko‘ra olmaymiz. konsol log xotiradagi ma’lumotni dastur konsoliga chiqarib beradi! ` +
+        `Yana bir muhim qoida: matnli ma’lumotlar har doim qo‘shtirnoq ichida yoziladi. Sonlar esa qo‘shtirnoqsiz to‘g‘ridan-to‘g‘ri yoziladi!`
+      ),
+      displayText: `📘 **const, let va console.log Tahlili:**\n\n` +
+        `• **\`const\`** — O‘zgarmas (konstanta). Bir marta qiymat beriladi va butun dastur davomida o‘zgarmaydi. Xavfsizlik uchun tavsiya etiladi.\n` +
+        `• **\`let\`** — O‘zgaruvchan qiymat (hisoblagich, ball, o‘zgarib turuvchi holat). Qiymati keyinroq yangilanishi mumkin.\n` +
+        `• **\`console.log()\`** — Xotiradagi ma’lumotni ekranga (konsolga) chiqarib ko‘rish buyrug‘i. Dasturchining asosiy tekshirish vositasi.\n` +
+        `• **Matn (String)** — Doimo \`"qo‘shtirnoq"\` ichida bo‘ladi.\n` +
+        `• **Son (Number)** — Qo‘shtirnoqsiz to‘g‘ridan-to‘g‘ri yoziladi.`,
+    });
+  } else if (isConditionals) {
+    steps.push({
+      id: 'step-theory',
+      elementId: 'lesson-theory-section',
+      title: '4. Shartli Mantiq (if / else) va === Operatorlari',
+      pointingDirection: 'left',
+      speechText: formatTextForSpeech(
+        `Shartli operatorlar nima uchun kerak? Dastur inson kabi mustaqil qaror qabul qilishi uchun! ` +
+        `if — agar degani. U shartni tekshiradi, agar shart to‘g‘ri bo‘lsa, jingalak qavs ichidagi kod bajariladi. ` +
+        `else esa — aks holda degani. Shart noto‘g‘ri bo‘lsa, else bloki ishga tushadi. ` +
+        `Taqqoslash uchun har doim uchta tenglik, ya’ni qat’iy tenglik operatori ishlatiladi! Bitta tenglik esa o‘zgaruvchiga qiymat berish uchundir.`
+      ),
+      displayText: `📘 **Shartli Operatorlar Tahlili:**\n\n` +
+        `• **\`if (shart)\`** — Agar shart to‘g‘ri bo‘lsa, blok ichidagi kod bajariladi.\n` +
+        `• **\`else\`** — Aks holda, ya’ni shart bajarilmaganda ishga tushadi.\n` +
+        `• **\`===\`** — Qat’iy tenglik operatori (ikkita qiymat tengligini tekshiradi).\n` +
+        `• **\`=\`** — Qiymat berish (o‘zlashtirish) operatori.`,
+    });
+  } else if (isLoops) {
+    steps.push({
+      id: 'step-theory',
+      elementId: 'lesson-theory-section',
+      title: '4. Sikllar Nima va Nega Kerak?',
+      pointingDirection: 'left',
+      speechText: formatTextForSpeech(
+        `Sikllar nima uchun kerak? Tasavvur qiling, bir xil amalni 100 marta bajarish kerak. Yuzta qator kod yozib o‘tirmaymiz-ku! ` +
+        `Sikl orqali biz kompyuterga: "mana bu amalni hisoblagich 100 ga yetguncha takrorla" deb 3 qatorda buyruq beramiz. ` +
+        `for sikli aniq necha marta takrorlash kerakligini bilganimizda, while sikli esa ma’lum bir shart bajarilib turguncha takrorlashda ishlatiladi!`
+      ),
+      displayText: `📘 **Sikllar Tahlili:**\n\n` +
+        `• **\`for\`** — Takrorlanishlar soni aniq ma’lum bo‘lganda.\n` +
+        `• **\`while\`** — Shart to‘g‘ri bo‘lib turguncha takrorlashda.\n` +
+        `• Kompyuterga bir xil amallarni avtomatlashtirish imkonini beradi.`,
+    });
+  } else {
+    // Custom theory fallback
+    const theorySummary = (ctx.theory || []).map(b => b.content).filter(Boolean).join(' ');
+    steps.push({
+      id: 'step-theory',
+      elementId: 'lesson-theory-section',
+      title: '4. Asosiy Nazariya va Qoidalar',
+      pointingDirection: 'left',
+      speechText: formatTextForSpeech(
+        `Ushbu darsning asosiy qoidalariga e’tibor bering: ${theorySummary || 'Qoidalarni yaxshilab o‘rganib chiqing.'}`
+      ),
+      displayText: `📘 **Asosiy Nazariya:**\n\n${theorySummary || 'Dars qoidalari bilan tanishib chiqing.'}`,
+    });
+  }
+
+  // Step 5: Interactive Example Line-by-Line Breakdown
+  if (ctx.interactiveExample && ctx.interactiveExample.code) {
+    let exampleSpeech = `Endi chap tomondagi kod namunasiga qarang, har bir qatorni birma-bir tahlil qilamiz: `;
+    if (isVariables && ctx.interactiveExample.code.includes('platforma')) {
+      exampleSpeech += `Birinchi qatorda: const platforma teng qo‘shtirnoqda CodeQuest deb yozdik. Nega const? Chunki platformamiz nomi o‘zgarmaydi! Matn bo‘lgani uchun qo‘shtirnoq ichida yozdik. ` +
+        `Ikkinchi qatorda: let darsRaqami teng 1 deb yozdik. Nega let? Chunki dars raqami keyingi darslarga o‘tganingiz sari 2, 3 bo‘lib o‘zgarib boradi! Son bo‘lgani uchun qo‘shtirnoqsiz yozdik. ` +
+        `Uchinchi va to‘rtinchi qatorlarda esa: konsol log orqali xotiradagi o‘sha qiymatlarni dastur konsoliga chiqaryapmiz. Ko‘rib turganingizdek, har bir qatorda nima uchun va qanday yozilishi aniq sababga ega!`;
+    } else if (ctx.interactiveExample.lineExplanations && Object.keys(ctx.interactiveExample.lineExplanations).length > 0) {
+      Object.entries(ctx.interactiveExample.lineExplanations).forEach(([line, exp]) => {
+        exampleSpeech += `${line}-qatorda: ${exp} `;
+      });
+      exampleSpeech += `Mana shunday qilib har bir buyruq o‘z vazifasini bajaradi!`;
+    } else {
+      exampleSpeech += `Kod blokidagi qatorlar ketma-ketligiga e’tibor bering. Kompyuter buyruqlarni yuqoridan pastga qarab navbatma-navbat bajaradi.`;
+    }
+
+    steps.push({
+      id: 'step-example',
+      elementId: 'lesson-example-section',
+      title: '5. Kod Namunasi: Qatorma-Qator Tahlil',
+      pointingDirection: 'left',
+      speechText: formatTextForSpeech(exampleSpeech),
+      displayText: `💻 **Kod Namunasi Tahlili:**\n\n\`\`\`javascript\n${ctx.interactiveExample.code}\n\`\`\`\n\n` +
+        (ctx.interactiveExample.lineExplanations
+          ? Object.entries(ctx.interactiveExample.lineExplanations).map(([l, exp]) => `• **${l}-qator:** ${exp}`).join('\n')
+          : 'Buyruqlar yuqoridan pastga qarab bajariladi.'),
+    });
+  }
+
+  // Step 6: Common Mistakes
+  if (ctx.commonMistakes && ctx.commonMistakes.length > 0) {
+    const firstMistake = ctx.commonMistakes[0];
+    steps.push({
+      id: 'step-mistakes',
+      elementId: 'lesson-mistakes-section',
+      title: '6. Ko‘p Uchraydigan Xatolar',
+      pointingDirection: 'left',
+      speechText: formatTextForSpeech(
+        `Keling, yangi o‘rganuvchilar eng ko‘p yo‘l qo‘yadigan xatoga to‘xtalamiz: ${firstMistake.title}! ${firstMistake.explanation}. Masalan, const deb e’lon qilingan o‘zgaruvchining qiymatini keyinchalik qayta o‘zgartirib bo‘lmaydi. Agar qiymat o‘zgarishi kerak bo‘lsa, const emas, let ishlatish shart! Buni hech qachon unutmang!`
+      ),
+      displayText: `⚠️ **Ko‘p Uchraydigan Xatodan Ehtiyot Bo‘ling!**\n\n` +
+        `• **Xatolik:** ${firstMistake.title}\n` +
+        `• **Sabab:** ${firstMistake.explanation}\n` +
+        `• ❌ **Xato kod:** \`${firstMistake.wrongCode.replace(/\n/g, ' ')}\`\n` +
+        `• ✅ **To‘g‘ri kod:** \`${firstMistake.correctCode.replace(/\n/g, ' ')}\``,
+    });
+  }
+
+  // Step 7: Call to Action — Monaco Code Editor
+  const exerciseDesc = ctx.exercise?.description || 'Topshiriq shartiga muvofiq kodingizni yozing.';
+  const exerciseInstructions = (ctx.exercise?.instructions || []).join('. ');
+  steps.push({
+    id: 'step-editor',
+    elementId: 'lesson-code-editor',
+    title: '7. Amaliy Topshiriqni Bajarish',
+    pointingDirection: 'right',
+    speechText: formatTextForSpeech(
+      `Ofarin! Nazariyani to‘liq tushunib oldingiz. Endi o‘ng tomondagi kod muharririga qarang! Topshiriq sharti: ${exerciseDesc}. ${exerciseInstructions}. Qani, kodingizni yozib, ko‘k rangli "Ishga tushirish" tugmasini bosing. Agar biror xatolik bo‘lsa, men darhol o‘sha xato qatoringizga uchib borib, yordam beraman. Qani, boshlang!`
+    ),
+    displayText: `🚀 **Amaliyot Vaqti!**\n\n` +
+      `**Topshiriq:** ${ctx.exercise?.title || cleanTitle}\n\n` +
+      `${exerciseDesc}\n\n` +
+      `Kodingizni o‘ng tomondagi muharrirda yozing va **"Ishga tushirish"** tugmasini bosing. Men har qadamda sizga yordamga tayyorman!`,
+  });
+
+  return steps;
+}
+
 /**
  * Generate welcome greeting for the current lesson
  */
 export function getLessonGreeting(lessonTitle: string, objective?: string): RobotSpeechScript {
   const cleanTitle = lessonTitle.replace(/^(\d+-Dars:?\s*)/i, '');
-  const speechText = `Assalomu alaykum, do‘stim! Men sizning yordamchingiz Robo-Ustozman. Bugun birgalikda juda qiziq mavzu — ${cleanTitle} haqida o‘rganamiz. ${
-    objective ? `Asosiy maqsadimiz: ${objective}.` : ''
-  } Qani, kodingizni yozishni boshlang, agar qiyinchilik bo‘lsa, men har doim yoningizdaman!`;
+  const objectiveNote = objective ? ` Asosiy maqsadimiz: ${objective}.` : '';
+  const speechText = `Assalomu alaykum, do‘stim! Men sizning yordamchingiz Robo-Ustozman. Bugun birgalikda "${cleanTitle}" mavzusini o‘rganamiz.${objectiveNote} Agar darsni to‘liq tushunmoqchi bo‘lsangiz, yuqoridagi "Robo-Ustoz tushuntirsin" tugmasini bosing, men har bir kod nima uchun yozilishini batafsil tushuntirib beraman!`;
 
   return {
     id: 'lesson-greeting',
     mood: 'talking',
     title: 'Robo-Ustoz siz bilan!',
     speechText: formatTextForSpeech(speechText),
-    displayText: `Assalomu alaykum! Bugun **${cleanTitle}** darsini o‘rganamiz. ${objective || ''} Kod yozishga tayyormisiz? 🚀`,
+    displayText: `Assalomu alaykum! Bugun **${cleanTitle}** darsini o‘rganamiz.${objective ? `\n\n🎯 *Maqsad: ${objective}*` : ''}\n\nDarsni to‘liq tushunish uchun yuqoridagi **"🎓 Robo-Ustoz tushuntirsin"** tugmasini bosing! 🚀`,
   };
 }
 

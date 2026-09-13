@@ -1,22 +1,49 @@
 'use client';
 
 import React from 'react';
+import { Robot3DCanvas } from './Robot3DCanvas';
 
 export type RobotMood = 'idle' | 'talking' | 'alert' | 'celebrate' | 'thinking';
 
 interface RobotAvatarProps {
   mood?: RobotMood;
   isSpeaking?: boolean;
+  isPointing?: boolean;
   size?: number;
   className?: string;
+  forceSvg?: boolean;
 }
+
+const emptySubscribe = () => () => {};
 
 export function RobotAvatar({
   mood = 'idle',
   isSpeaking = false,
+  isPointing = false,
   size = 72,
   className = '',
+  forceSvg = false,
 }: RobotAvatarProps) {
+  const isClient = React.useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+
+  // Use 3D canvas on client unless forceSvg is true
+  if (isClient && !forceSvg) {
+    return (
+      <div className={`relative select-none flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
+        <Robot3DCanvas
+          mood={mood}
+          isSpeaking={isSpeaking}
+          isPointing={isPointing}
+          size={size}
+        />
+      </div>
+    );
+  }
+
   const currentMood = isSpeaking ? 'talking' : mood;
 
   // Colors based on mood

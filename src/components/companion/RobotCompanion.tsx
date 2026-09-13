@@ -9,11 +9,14 @@ import {
   Sparkles, 
   X, 
   ChevronRight, 
+  ChevronLeft,
   Move, 
   Bot, 
-  AlertTriangle,
-  Lightbulb,
-  Headphones
+  AlertTriangle, 
+  Lightbulb, 
+  Headphones,
+  GraduationCap,
+  Code2
 } from 'lucide-react';
 import { RobotAvatar, RobotMood } from './RobotAvatar';
 import { 
@@ -26,9 +29,17 @@ import {
 } from './robot-dialogue';
 import { Button } from '@/components/ui/button';
 
+export interface TourStep {
+  elementId: string;
+  title: string;
+  speechText: string;
+  displayText: string;
+}
+
 export interface RobotCompanionProps {
   lessonTitle?: string;
   lessonObjective?: string;
+  lessonAnalogy?: string;
   lastError?: {
     type?: string;
     message: string;
@@ -45,6 +56,7 @@ export interface RobotCompanionProps {
 export function RobotCompanion({
   lessonTitle = 'Dasturlash Darsi',
   lessonObjective,
+  lessonAnalogy,
   lastError,
   userCode = '',
   isPassed = false,
@@ -52,9 +64,14 @@ export function RobotCompanion({
   hintsUsedCount = 0,
   onHighlightLine,
 }: RobotCompanionProps) {
-  // Floating position state (default: bottom-right corner)
+  // Navigation & Floating position state
   const [position, setPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [isPointing, setIsPointing] = useState(false);
+  const [targetElementId, setTargetElementId] = useState<string | null>(null);
+  const [targetLineNumber, setTargetLineNumber] = useState<number | null>(null);
+  const [activeTourStep, setActiveTourStep] = useState<number>(-1); // -1 = not in guided tour
+
   const dragStartRef = useRef<{ startX: number; startY: number; posX: number; posY: number }>({ startX: 0, startY: 0, posX: 0, posY: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -177,7 +194,7 @@ export function RobotCompanion({
       }
     } catch (err: unknown) {
       if ((err as Error)?.name === 'AbortError') {
-        // Normal user interruption, ignore
+        // Normal user interruption
         return;
       }
       if (sessionId === speakSessionIdRef.current) {
@@ -198,7 +215,222 @@ export function RobotCompanion({
     }
   };
 
-  // 1. Initial Greeting when lesson opens (runs strictly ONCE per lesson mount)
+  // --- Dynamic Physical Positioning & Pointing Engine ---
+  const updatePosition = useCallback(() => {
+    if (isDragging) return;
+
+    // 1. Pointing to an error line inside code editor
+    if (targetLineNumber !== null) {
+      const editorEl = document.getElementById('lesson-code-editor');
+      if (editorEl) {
+        const rect = editorEl.getBoundingClientRect();
+        const isMobile = window.innerWidth < 1024;
+        
+        // Vertical line offset inside Monaco editor (~19px per line, ~40px toolbar offset)
+        const lineOffset = 42 + Math.min(Math.max(targetLineNumber - 1, 0), 25) * 19;
+        const targetY = rect.top + lineOffset;
+
+        // Scroll editor into comfortable view if off-screen
+        if (rect.top < 80 || rect.bottom > window.innerHeight) {
+          editorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        const x = isMobile 
+          ? Math.max(10, Math.min(window.innerWidth - 340, rect.left + 20))
+          : Math.max(10, Math.min(window.innerWidth - 380, rect.right - 60));
+        
+        const y = Math.max(80, Math.min(window.innerHeight - 340, targetY - 40));
+
+        setPosition({ x, y });
+        setIsPointing(true);
+        return;
+      }
+    }
+
+    // 2. Pointing to a lesson section during guided tour
+    if (targetElementId) {
+      const targetEl = document.getElementById(targetElementId);
+      if (targetEl) {
+        const rect = targetEl.getBoundingClientRect();
+        const isMobile = window.innerWidth < 1024;
+
+        if (rect.top < 80 || rect.bottom > window.innerHeight) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        const x = isMobile
+          ? Math.max(10, Math.min(window.innerWidth - 340, rect.left + 10))
+          : Math.max(10, Math.min(window.innerWidth - 380, rect.right + 20));
+
+        const y = Math.max(80, Math.min(window.innerHeight - 340, rect.top));
+
+        setPosition({ x, y });
+        setIsPointing(true);
+        return;
+      }
+    }
+
+    // 3. Default floating corner dock
+    setIsPointing(false);
+    const defaultX = Math.max(10, window.innerWidth - (window.innerWidth < 640 ? 330 : 380) - 20);
+    const defaultY = Math.max(80, window.innerHeight - 320);
+    setPosition({ x: defaultX, y: defaultY });
+  }, [targetElementId, targetLineNumber, isDragging]);
+
+  // Update position on mount, resize, or scroll (deferred with rAF to satisfy React 19 rules)
+  useEffect(() => {
+    const handleUpdate = () => updatePosition();
+    const rafId = requestAnimationFrame(handleUpdate);
+    window.addEventListener('resize', handleUpdate);
+    window.addEventListener('scroll', handleUpdate, { passive: true });
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', handleUpdate);
+      window.removeEventListener('scroll', handleUpdate);
+    };
+  }, [updatePosition]);
+
+  // Highlight active target element on page
+  useEffect(() => {
+    // Remove previous highlights
+    document.querySelectorAll('.robo-pointer-highlight').forEach((el) => {
+      el.classList.remove('robo-pointer-highlight', 'ring-2', 'ring-primary', 'ring-offset-2', 'shadow-lg');
+    });
+
+    if (targetElementId) {
+      const el = document.getElementById(targetElementId);
+      if (el) {
+        el.classList.add('robo-pointer-highlight', 'ring-2', 'ring-primary', 'ring-offset-2', 'shadow-lg');
+      }
+    }
+
+    return () => {
+      document.querySelectorAll('.robo-pointer-highlight').forEach((el) => {
+        el.classList.remove('robo-pointer-highlight', 'ring-2', 'ring-primary', 'ring-offset-2', 'shadow-lg');
+      });
+    };
+  }, [targetElementId]);
+
+  // --- Guided Tour Definition ---
+  const cleanTitle = lessonTitle.replace(/^(\d+-Dars:?\s*)/i, '');
+  const tourSteps: TourStep[] = [
+    {
+      elementId: 'lesson-title-section',
+      title: '1. Dars Mavzusi',
+      speechText: `Assalomu alaykum, aziz do‘stim! Bugungi darsimiz mavzusi — ${cleanTitle}. Keling, darsni barmog‘im bilan ko‘rsatib, birgalikda o‘rganamiz!`,
+      displayText: `👋 **${cleanTitle}** darsiga xush kelibsiz! Men barmog‘im bilan har bir bo‘limni ko‘rsatib tushuntiraman.`,
+    },
+    ...(lessonObjective ? [{
+      elementId: 'lesson-objective-section',
+      title: '2. Asosiy Maqsad',
+      speechText: `Bu darsdagi asosiy maqsadimiz: ${lessonObjective}. Ushbu bilimlarni o‘rganish orqali haqiqiy dasturchi kabi fikrlashni boshlaysiz.`,
+      displayText: `🎯 **Asosiy maqsad:**\n${lessonObjective}`,
+    }] : []),
+    ...(lessonAnalogy ? [{
+      elementId: 'lesson-analogy-section',
+      title: '3. Hayotiy Misol',
+      speechText: `Mavzuni osonroq tushunish uchun hayotiy misol keltiraman: ${lessonAnalogy}`,
+      displayText: `💡 **Hayotiy Misol:**\n${lessonAnalogy}`,
+    }] : []),
+    {
+      elementId: 'lesson-example-section',
+      title: '4. Kod Namunasi',
+      speechText: `Mana bu kod namunasiga qarang. Bu yerda kompyuterga aniq buyruqlar berilgan va ekranga xabar chiqarish ko‘rsatilgan.`,
+      displayText: `💻 **Kod Namunasi:**\nNamuna kodini ko‘rib chiqing. "Muharrirga ko‘chirish" tugmasi orqali uni sinab ko‘rishingiz mumkin.`,
+    },
+    {
+      elementId: 'lesson-code-editor',
+      title: '5. Amaliy Topshiriq',
+      speechText: `Endi esa navbat sizga! Mana bu muharrirda topshiriq kodingizni yozing va Ishga tushirish tugmasini bosing. Agar xatolik bo‘lsa, men o‘sha qatorga borib, to‘g‘rilashni o‘rgataman!`,
+      displayText: `🚀 **Amaliyot Vaqti!**\nO‘ng tomondagi muharrirda kodingizni yozing va "Ishga tushirish" tugmasini bosing!`,
+    }
+  ];
+
+  // Start Guided Tour
+  const startGuidedTour = (stepIndex = 0) => {
+    const step = tourSteps[stepIndex];
+    if (!step) {
+      // Tour completed, dock to corner
+      setActiveTourStep(-1);
+      setTargetElementId(null);
+      setTargetLineNumber(null);
+      setIsPointing(false);
+      return;
+    }
+
+    setActiveTourStep(stepIndex);
+    setTargetLineNumber(null);
+    setTargetElementId(step.elementId);
+    setIsMinimized(false);
+    setIsBubbleOpen(true);
+
+    const script: RobotSpeechScript = {
+      id: `tour-${stepIndex}`,
+      mood: 'talking',
+      title: step.title,
+      speechText: formatTextForSpeech(step.speechText),
+      displayText: step.displayText,
+    };
+
+    setCurrentScript(script);
+    speakText(script.speechText);
+  };
+
+  // Next Step in Tour
+  const nextTourStep = () => {
+    if (activeTourStep < tourSteps.length - 1) {
+      startGuidedTour(activeTourStep + 1);
+    } else {
+      // Finished
+      setActiveTourStep(-1);
+      setTargetElementId(null);
+      setTargetLineNumber(null);
+      setIsPointing(false);
+      const doneScript: RobotSpeechScript = {
+        id: 'tour-complete',
+        mood: 'celebrate',
+        title: 'Tushuntirish yakunlandi! 🌟',
+        speechText: 'Dars bilan tanishib chiqdingiz. Endi kodingizni yozib, topshiriqni bajaring!',
+        displayText: '🎉 **Dars bilan tanishib chiqdingiz!**\nEndi amaliy topshiriqni bajarib ko‘ring. Omad!',
+      };
+      setCurrentScript(doneScript);
+      speakText(doneScript.speechText);
+    }
+  };
+
+  // Prev Step in Tour
+  const prevTourStep = () => {
+    if (activeTourStep > 0) {
+      startGuidedTour(activeTourStep - 1);
+    }
+  };
+
+  // Dock to corner / Cancel pointing
+  const dockToCorner = useCallback(() => {
+    setActiveTourStep(-1);
+    setTargetElementId(null);
+    setTargetLineNumber(null);
+    setIsPointing(false);
+    stopSpeaking();
+  }, [stopSpeaking]);
+
+  // Listen to external event to start guided tour from anywhere (e.g. Header button)
+  const startTourRef = useRef<(step?: number) => void>(() => {});
+  useEffect(() => {
+    startTourRef.current = startGuidedTour;
+  });
+
+  useEffect(() => {
+    const handleStartTourEvent = () => {
+      if (startTourRef.current) startTourRef.current(0);
+    };
+    window.addEventListener('start-robo-tour', handleStartTourEvent);
+    return () => {
+      window.removeEventListener('start-robo-tour', handleStartTourEvent);
+    };
+  }, []);
+
+  // 1. Initial Greeting when lesson opens (prompts to start guided tour)
   const hasGreetedRef = useRef(false);
   useEffect(() => {
     if (hasGreetedRef.current) return;
@@ -219,7 +451,7 @@ export function RobotCompanion({
     };
   }, [lessonTitle, lessonObjective, speakText, stopSpeaking]);
 
-  // 2. React immediately when a Code Error occurs
+  // 2. React immediately when a Code Error occurs: FLY TO ERROR LINE & POINT 👉
   const prevErrorRef = useRef<string | null>(null);
   useEffect(() => {
     if (lastError && lastError.message) {
@@ -227,24 +459,35 @@ export function RobotCompanion({
       if (prevErrorRef.current !== errorKey) {
         prevErrorRef.current = errorKey;
 
+        // Cancel any active reading tour
+        setActiveTourStep(-1);
+
+        const errorLine = lastError.line || 1;
+        setTargetElementId(null);
+        setTargetLineNumber(errorLine);
+
         const diag = diagnoseErrorForSpeech(lastError, userCode);
         setCurrentScript(diag);
         setMood('alert');
         setIsBubbleOpen(true);
+        setIsMinimized(false);
+        setIsPointing(true);
+
         speakText(diag.speechText);
 
-        if (lastError.line && onHighlightLine) {
-          onHighlightLine(lastError.line);
+        if (onHighlightLine) {
+          onHighlightLine(errorLine);
         }
       }
     }
   }, [lastError, userCode, onHighlightLine, speakText]);
 
-  // 3. React when student passes all tests
+  // 3. React when student passes all tests: Celebrate with star eyes!
   const prevPassedRef = useRef(false);
   useEffect(() => {
     if (isPassed && !prevPassedRef.current) {
       prevPassedRef.current = true;
+      dockToCorner();
       const celebration = getSuccessCelebration(50);
       setCurrentScript(celebration);
       setMood('celebrate');
@@ -253,7 +496,7 @@ export function RobotCompanion({
     } else if (!isPassed) {
       prevPassedRef.current = false;
     }
-  }, [isPassed, speakText]);
+  }, [isPassed, speakText, dockToCorner]);
 
   // 4. React when a hint is revealed
   const prevHintCountRef = useRef(0);
@@ -270,7 +513,6 @@ export function RobotCompanion({
 
   // Drag and Drop handlers
   const handlePointerDown = (e: React.PointerEvent) => {
-    // Only drag from robot avatar or drag bar, not from inside buttons
     if ((e.target as HTMLElement).closest('button, a, input')) return;
 
     setIsDragging(true);
@@ -311,15 +553,12 @@ export function RobotCompanion({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       style={{
-        transform: `translate(${position.x}px, ${position.y}px)`,
+        transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
         touchAction: 'none',
+        transition: isDragging ? 'none' : 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
       }}
-      className={`fixed z-50 transition-shadow ${
+      className={`fixed top-0 left-0 z-50 transition-shadow ${
         isDragging ? 'cursor-grabbing select-none' : 'cursor-default'
-      } ${
-        isMinimized 
-          ? 'bottom-4 right-4 sm:bottom-6 sm:right-6' 
-          : 'bottom-4 right-4 sm:bottom-6 sm:right-6'
       }`}
     >
       {/* MINIMIZED FLOATING BADGE */}
@@ -330,24 +569,34 @@ export function RobotCompanion({
             setIsMinimized(false);
             setIsBubbleOpen(true);
           }}
-          className="group relative flex items-center gap-2 p-2 rounded-2xl bg-card/90 backdrop-blur-xl border-2 border-primary shadow-2xl hover:scale-105 transition-all duration-300 active:scale-95"
+          className="group relative flex items-center gap-2 p-2 rounded-2xl bg-card/95 backdrop-blur-xl border-2 border-primary shadow-2xl hover:scale-105 transition-all duration-300 active:scale-95"
           title="Robo-Ustozni ochish"
         >
-          <RobotAvatar mood={mood} isSpeaking={isSpeaking} size={48} />
+          <RobotAvatar mood={mood} isSpeaking={isSpeaking} isPointing={isPointing} size={48} />
           <div className="hidden sm:flex flex-col text-left pr-2">
             <span className="font-black text-xs text-foreground flex items-center gap-1">
-              Robo-Ustoz
+              Robo-Ustoz 3D
               {isSpeaking && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />}
             </span>
-            <span className="text-[10px] text-muted-foreground">Yordam berishga tayyorman</span>
+            <span className="text-[10px] text-muted-foreground">Barmog‘im bilan ko‘rsataman</span>
           </div>
           <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center text-[9px] text-white font-bold">
             ✦
           </span>
         </button>
       ) : (
-        /* EXPANDED INTERACTIVE COMPANION & SPEECH BUBBLE */
+        /* EXPANDED 3D COMPANION & SPEECH BALLOON */
         <div className="flex flex-col items-end gap-2 max-w-[340px] sm:max-w-[380px]">
+          {/* Visual Pointer Guide when actively pointing 👉 */}
+          {isPointing && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary text-white text-[11px] font-bold shadow-lg shadow-primary/30 animate-bounce self-start mb-1">
+              <span>👉</span>
+              <span>
+                {targetLineNumber !== null ? `${targetLineNumber}-qatorga qarang!` : 'Ushbu matnga qarang!'}
+              </span>
+            </div>
+          )}
+
           {/* Speech Bubble */}
           {isBubbleOpen && currentScript && (
             <div className="w-full rounded-2xl border-2 border-primary/30 bg-card/95 backdrop-blur-2xl shadow-2xl p-4 space-y-3 animate-in zoom-in-95 duration-200 text-foreground">
@@ -359,7 +608,7 @@ export function RobotCompanion({
                   </div>
                   <div>
                     <h4 className="font-bold text-xs leading-none flex items-center gap-1.5 text-foreground">
-                      <span>Robo-Ustoz</span>
+                      <span>Robo-Ustoz 3D</span>
                       {isSpeaking && (
                         <span className="flex items-center gap-0.5 text-[9px] text-emerald-500 font-semibold px-1.5 py-0.2 rounded-full bg-emerald-500/10">
                           <Headphones className="w-2.5 h-2.5 animate-pulse" />
@@ -368,14 +617,14 @@ export function RobotCompanion({
                       )}
                       {isLoadingAudio && (
                         <span className="flex items-center gap-0.5 text-[9px] text-amber-500 font-semibold px-1.5 py-0.2 rounded-full bg-amber-500/10 animate-pulse">
-                          ovoz yuklanmoqda...
+                          ovoz tayyorlanmoqda...
                         </span>
                       )}
                     </h4>
                   </div>
                 </div>
 
-                {/* Voice Controls: Mute, Voice switch, Minimize */}
+                {/* Voice Controls: Mute, Voice switch, Close */}
                 <div className="flex items-center gap-1">
                   {/* Voice switcher (Madina / Sardor) */}
                   <button
@@ -425,15 +674,15 @@ export function RobotCompanion({
                     </button>
                   )}
 
-                  {/* Close bubble */}
+                  {/* Close / Dock */}
                   <button
                     type="button"
                     onClick={() => {
-                      stopSpeaking();
+                      dockToCorner();
                       setIsBubbleOpen(false);
                     }}
                     className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
-                    title="Yopish"
+                    title="Burchakka yig‘ish"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -443,10 +692,10 @@ export function RobotCompanion({
               {/* Bubble Body Content */}
               <div className="text-xs leading-relaxed space-y-2 max-h-48 overflow-y-auto pr-1 no-scrollbar">
                 <p className="font-semibold text-primary flex items-center gap-1 text-[11px]">
-                  {mood === 'alert' && <AlertTriangle className="w-3.5 h-3.5 text-red-500" />}
-                  {mood === 'celebrate' && <Sparkles className="w-3.5 h-3.5 text-amber-500" />}
-                  {mood === 'talking' && <Lightbulb className="w-3.5 h-3.5 text-blue-500" />}
-                  {currentScript.title}
+                  {mood === 'alert' && <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />}
+                  {mood === 'celebrate' && <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+                  {mood === 'talking' && <Lightbulb className="w-3.5 h-3.5 text-blue-500 shrink-0" />}
+                  <span>{currentScript.title}</span>
                 </p>
 
                 <div className="text-muted-foreground whitespace-pre-wrap font-normal text-xs">
@@ -454,34 +703,115 @@ export function RobotCompanion({
                 </div>
               </div>
 
-              {/* Action Buttons if available */}
-              {lastError && lastError.line && (
+              {/* Action Buttons: Guided Tour Controls OR Error Fix Controls */}
+              {activeTourStep >= 0 ? (
+                // Guided Tour Navigation Footer
                 <div className="pt-2 border-t border-border/50 flex items-center justify-between gap-2">
-                  <span className="text-[10px] text-muted-foreground">
-                    Xato qatori: <strong className="text-red-500">{lastError.line}</strong>
-                  </span>
+                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-semibold">
+                    <span>Qadam {activeTourStep + 1} / {tourSteps.length}</span>
+                  </div>
 
-                  {onHighlightLine && (
+                  <div className="flex items-center gap-1.5">
+                    {activeTourStep > 0 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={prevTourStep}
+                        className="h-7 text-[11px] px-2 gap-1"
+                      >
+                        <ChevronLeft className="w-3 h-3" />
+                        <span>Oldingisi</span>
+                      </Button>
+                    )}
+
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="gradient"
                       size="sm"
-                      onClick={() => onHighlightLine(lastError.line || 1)}
-                      className="h-7 text-[11px] font-bold gap-1 text-primary border-primary/40 hover:bg-primary/10"
+                      onClick={nextTourStep}
+                      className="h-7 text-[11px] px-2.5 gap-1 font-bold"
                     >
-                      <span>Qatorni ko‘rsat</span>
+                      <span>{activeTourStep < tourSteps.length - 1 ? 'Keyingisi' : 'Tugatish'}</span>
                       <ChevronRight className="w-3 h-3" />
                     </Button>
-                  )}
+                  </div>
+                </div>
+              ) : targetLineNumber !== null ? (
+                // Error Navigation Footer
+                <div className="pt-2 border-t border-border/50 flex items-center justify-between gap-2">
+                  <span className="text-[10px] text-muted-foreground">
+                    Xato qatori: <strong className="text-red-500 font-mono text-xs">{targetLineNumber}</strong>
+                  </span>
+
+                  <div className="flex items-center gap-1.5">
+                    {onHighlightLine && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onHighlightLine(targetLineNumber)}
+                        className="h-7 text-[11px] font-bold gap-1 text-primary border-primary/40 hover:bg-primary/10"
+                      >
+                        <Code2 className="w-3 h-3" />
+                        <span>Qatorga o‘tish</span>
+                      </Button>
+                    )}
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={dockToCorner}
+                      className="h-7 text-[10px] text-muted-foreground"
+                    >
+                      Burchakka qaytish
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                // Start Tour CTA when in idle greeting
+                <div className="pt-2 border-t border-border/50 flex items-center justify-between gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => startGuidedTour(0)}
+                    className="h-7 text-[11px] font-bold gap-1.5 w-full text-primary border-primary/30 hover:bg-primary/10"
+                  >
+                    <GraduationCap className="w-3.5 h-3.5 text-primary" />
+                    <span>Darsni barmog‘ing bilan ko‘rsatib tushuntir 👉</span>
+                  </Button>
                 </div>
               )}
             </div>
           )}
 
-          {/* Floating Robot Interactive Body */}
+          {/* Floating 3D Robot Interactive Mascot */}
           <div className="flex items-center gap-2">
             {/* Quick action buttons floating beside robot */}
             <div className="flex flex-col gap-1.5 opacity-90 hover:opacity-100 transition-opacity">
+              {/* Guided tour button */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (activeTourStep >= 0) {
+                    dockToCorner();
+                  } else {
+                    startGuidedTour(0);
+                  }
+                }}
+                className={`w-8 h-8 rounded-xl border shadow-md flex items-center justify-center text-xs transition-all hover:scale-110 active:scale-95 ${
+                  activeTourStep >= 0 
+                    ? 'bg-primary text-white border-primary' 
+                    : 'bg-card border-border/80 text-primary hover:border-primary'
+                }`}
+                title={activeTourStep >= 0 ? 'Tushuntirishni to‘xtatish' : 'Darsni o‘qib tushuntirish'}
+              >
+                <GraduationCap className="w-4 h-4" />
+              </button>
+
+              {/* Speak button */}
               <button
                 type="button"
                 onClick={() => {
@@ -494,6 +824,7 @@ export function RobotCompanion({
                 <Volume2 className="w-4 h-4" />
               </button>
 
+              {/* Minimize button */}
               <button
                 type="button"
                 onClick={() => setIsMinimized(true)}
@@ -504,7 +835,7 @@ export function RobotCompanion({
               </button>
             </div>
 
-            {/* Draggable Animated Robot Mascot */}
+            {/* Draggable Animated 3D Robot Mascot */}
             <div
               onClick={() => {
                 setIsBubbleOpen(!isBubbleOpen);
@@ -512,14 +843,18 @@ export function RobotCompanion({
                   speakText(currentScript.speechText);
                 }
               }}
-              className="relative p-2 rounded-3xl bg-gradient-to-tr from-blue-600/10 via-card/80 to-purple-600/10 border-2 border-primary/40 backdrop-blur-xl shadow-2xl cursor-pointer hover:border-primary hover:scale-105 active:scale-95 transition-all duration-300 animate-bounce"
-              style={{ animationDuration: isSpeaking ? '1.5s' : '4s' }}
-              title="Robo-Ustoz bilan muloqot qilish (Ekranda sudrab ko‘chirishingiz mumkin)"
+              className="relative p-1.5 rounded-3xl bg-gradient-to-tr from-blue-600/15 via-card/90 to-purple-600/15 border-2 border-primary/50 backdrop-blur-xl shadow-2xl cursor-pointer hover:border-primary hover:scale-105 active:scale-95 transition-all duration-300"
+              title="Robo-Ustoz 3D — Barmog‘i bilan ko‘rsatuvchi yordamchi (Ekranda sudrashingiz mumkin)"
             >
-              <RobotAvatar mood={mood} isSpeaking={isSpeaking} size={70} />
+              <RobotAvatar 
+                mood={mood} 
+                isSpeaking={isSpeaking} 
+                isPointing={isPointing} 
+                size={84} 
+              />
 
               {/* Drag indicator icon */}
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.2 rounded-full bg-muted/80 text-[8px] text-muted-foreground flex items-center gap-0.5 pointer-events-none">
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.2 rounded-full bg-muted/90 text-[8px] text-muted-foreground flex items-center gap-0.5 pointer-events-none">
                 <Move className="w-2 h-2" />
                 <span>suzish</span>
               </div>

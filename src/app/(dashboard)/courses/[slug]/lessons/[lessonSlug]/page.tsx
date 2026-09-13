@@ -13,7 +13,8 @@ import {
   Check,
   Award,
   XCircle,
-  BookOpen
+  BookOpen,
+  GraduationCap
 } from 'lucide-react';
 import type { Lesson, Exercise, TestResult, CodeError, ErrorExplanation } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -309,6 +310,23 @@ export default function LessonPage({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Robo-Ustoz Guided Tour Trigger */}
+          <Button
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('start-robo-tour'));
+              }
+            }}
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1.5 border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 font-bold shadow-xs hover:scale-105 active:scale-95 transition-all"
+            title="Robo-Ustoz darsni barmog‘i bilan ko‘rsatib tushuntirib berishi"
+          >
+            <GraduationCap className="w-4 h-4 text-primary" />
+            <span className="hidden sm:inline">Robo-Ustoz tushuntirsin</span>
+            <span className="sm:hidden">Ustoz 👉</span>
+          </Button>
+
           {/* Code Mentor floating toggle */}
           <Button
             onClick={() => setIsMentorOpen(!isMentorOpen)}
@@ -369,9 +387,9 @@ export default function LessonPage({
         {/* LEFT COLUMN: Educational Content (Theory, Analogy, Code Example, Quiz) */}
         <div className={`lg:col-span-6 space-y-6 ${mobileLessonTab === 'theory' ? 'block' : 'hidden lg:block'}`}>
           {/* Lesson Title & Objectives */}
-          <div className="space-y-2">
+          <div id="lesson-title-section" className="space-y-2">
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{lesson.title}</h1>
-            <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/20 text-xs text-foreground space-y-1">
+            <div id="lesson-objective-section" className="p-3.5 rounded-xl bg-primary/10 border border-primary/20 text-xs text-foreground space-y-1">
               <span className="font-bold flex items-center gap-1.5 text-primary">
                 <Sparkles className="w-3.5 h-3.5" />
                 Darsning asosiy maqsadi:
@@ -382,7 +400,7 @@ export default function LessonPage({
 
           {/* Real-Life Analogy */}
           {content.realLifeAnalogy && (
-            <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 space-y-2">
+            <div id="lesson-analogy-section" className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 space-y-2">
               <div className="flex items-center gap-2 text-amber-500 font-bold text-xs uppercase tracking-wider">
                 <Lightbulb className="w-4 h-4" />
                 <span>Hayotiy Misol</span>
@@ -394,7 +412,7 @@ export default function LessonPage({
           )}
 
           {/* Theory Sections */}
-          <div className="space-y-4 text-xs sm:text-sm text-foreground leading-relaxed">
+          <div id="lesson-theory-section" className="space-y-4 text-xs sm:text-sm text-foreground leading-relaxed">
             {content.theory.map((block, idx) => {
               if (block.type === 'heading') {
                 return (
@@ -420,7 +438,7 @@ export default function LessonPage({
 
           {/* Interactive Code Example */}
           {content.interactiveExample && (
-            <div className="space-y-2 pt-2">
+            <div id="lesson-example-section" className="space-y-2 pt-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold flex items-center gap-1.5 text-foreground">
                   <Code2 className="w-4 h-4 text-primary" />
@@ -568,56 +586,25 @@ export default function LessonPage({
           )}
 
           {/* Code Editor */}
-          {exercise?.isMultiFile || exercise?.starterFiles ? (
-            <div className="space-y-4">
-              <MultiFileEditor
-                files={multiFiles}
-                onChange={(fileName, val) => {
-                  setMultiFiles((prev) => ({ ...prev, [fileName]: val }));
-                }}
-                onRun={handleRunCode}
-                onReset={() => {
-                  if (exercise?.starterFiles) {
-                    setMultiFiles(exercise.starterFiles);
-                  }
-                }}
-                isLoading={isRunning}
-                onPasteDetected={() => setPasteCount((p) => p + 1)}
-                height="340px"
-              />
-              <MultiFilePreview files={multiFiles} height="320px" />
-              <ConsoleOutput
-                output={consoleOutput}
-                errors={codeErrors}
-                onClear={() => {
-                  setConsoleOutput('');
-                  setCodeErrors([]);
-                  setErrorDiagnosis(null);
-                }}
-              />
-            </div>
-          ) : (
-            <>
-              <CodeEditor
-                code={userCode}
-                onChange={setUserCode}
-                language={currentLang}
-                onRun={handleRunCode}
-                onReset={() => {
-                  if (exercise?.starterCode) setUserCode(exercise.starterCode);
-                }}
-                isLoading={isRunning}
-                onPasteDetected={() => setPasteCount((p) => p + 1)}
-                height="320px"
-              />
-
-              {/* Live Preview for HTML/CSS or Console Output for JS */}
-              {currentLang === 'html' || currentLang === 'css' ? (
-                <CodePreview
-                  htmlCode={currentLang === 'html' ? userCode : '<h1>CSS Preview</h1><p>Bu matn stillarini tekshiring.</p>'}
-                  cssCode={currentLang === 'css' ? userCode : ''}
+          <div id="lesson-code-editor">
+            {exercise?.isMultiFile || exercise?.starterFiles ? (
+              <div className="space-y-4">
+                <MultiFileEditor
+                  files={multiFiles}
+                  onChange={(fileName, val) => {
+                    setMultiFiles((prev) => ({ ...prev, [fileName]: val }));
+                  }}
+                  onRun={handleRunCode}
+                  onReset={() => {
+                    if (exercise?.starterFiles) {
+                      setMultiFiles(exercise.starterFiles);
+                    }
+                  }}
+                  isLoading={isRunning}
+                  onPasteDetected={() => setPasteCount((p) => p + 1)}
+                  height="340px"
                 />
-              ) : (
+                <MultiFilePreview files={multiFiles} height="320px" />
                 <ConsoleOutput
                   output={consoleOutput}
                   errors={codeErrors}
@@ -627,9 +614,42 @@ export default function LessonPage({
                     setErrorDiagnosis(null);
                   }}
                 />
-              )}
-            </>
-          )}
+              </div>
+            ) : (
+              <>
+                <CodeEditor
+                  code={userCode}
+                  onChange={setUserCode}
+                  language={currentLang}
+                  onRun={handleRunCode}
+                  onReset={() => {
+                    if (exercise?.starterCode) setUserCode(exercise.starterCode);
+                  }}
+                  isLoading={isRunning}
+                  onPasteDetected={() => setPasteCount((p) => p + 1)}
+                  height="320px"
+                />
+
+                {/* Live Preview for HTML/CSS or Console Output for JS */}
+                {currentLang === 'html' || currentLang === 'css' ? (
+                  <CodePreview
+                    htmlCode={currentLang === 'html' ? userCode : '<h1>CSS Preview</h1><p>Bu matn stillarini tekshiring.</p>'}
+                    cssCode={currentLang === 'css' ? userCode : ''}
+                  />
+                ) : (
+                  <ConsoleOutput
+                    output={consoleOutput}
+                    errors={codeErrors}
+                    onClear={() => {
+                      setConsoleOutput('');
+                      setCodeErrors([]);
+                      setErrorDiagnosis(null);
+                    }}
+                  />
+                )}
+              </>
+            )}
+          </div>
 
           {/* Error Explanation Panel if there are errors */}
           {errorDiagnosis && (
@@ -695,6 +715,7 @@ export default function LessonPage({
       <RobotCompanion
         lessonTitle={lesson.title}
         lessonObjective={content.learningObjective}
+        lessonAnalogy={content.realLifeAnalogy}
         lastError={codeErrors.length > 0 ? codeErrors[0] : null}
         userCode={userCode}
         isPassed={isPassed}

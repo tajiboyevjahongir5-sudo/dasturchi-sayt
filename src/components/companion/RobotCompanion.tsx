@@ -137,15 +137,15 @@ export function RobotCompanion({
       elementId: 'lesson-title-section',
       title: `1. Mavzu: ${cleanTitle}`,
       pointingDirection: 'left',
-      speechText: `Assalomu alaykum! Bugungi darsimizda dasturlash va algoritmlarning asosiy mohiyatini, kompyuterga buyruqlar berish sirlarini birgalikda o‘rganamiz. Dasturlash — bu qiziqarli mantiqiy jarayon bo‘lib, unda siz kompyuterga qanday ishlashni o‘rgatasiz.`,
-      displayText: `🎓 **Assalomu alaykum!** Bugun biz **${cleanTitle}** mavzusini o‘rganamiz. Kompyuter bilan muloqot qilish asoslarini ko‘rib chiqamiz.`,
+      speechText: `Assalomu alaykum! Bugungi darsimizda ${cleanTitle} mavzusini birgalikda o‘rganamiz. Darsni diqqat bilan kuzating, asosiy tushunchalarni birgalikda ko‘rib chiqamiz.`,
+      displayText: `🎓 **Assalomu alaykum!** Bugun biz **${cleanTitle}** mavzusini o‘rganamiz.`,
     },
     ...(lessonObjective ? [{
       id: 'step-objective',
       elementId: 'lesson-objective-section',
       title: '2. Darsning Asosiy Maqsadi',
       pointingDirection: 'left' as const,
-      speechText: `Ushbu darsdagi asosiy maqsadimiz: ${lessonObjective}. Buni puxta tushunib olsangiz, keyingi murakkab mavzular siz uchun juda oson va ravon bo‘ladi.`,
+      speechText: `Ushbu darsdagi asosiy maqsadimiz: ${lessonObjective}. Buni puxta tushunib olsangiz, amaliy mashg‘ulotlarni bajarish siz uchun juda oson bo‘ladi.`,
       displayText: `🎯 **Asosiy Maqsad:**\n${lessonObjective}`,
     }] : []),
     ...(lessonAnalogy ? [{
@@ -153,7 +153,7 @@ export function RobotCompanion({
       elementId: 'lesson-analogy-section',
       title: '3. Hayotiy Misol',
       pointingDirection: 'left' as const,
-      speechText: `Mavzuni hayotimiz bilan bog‘laymiz: ${lessonAnalogy}. Ko‘rib turganingizdek, algoritm — bu kundalik hayotimizdagi oddiy tartib-qoidalarga o‘xshaydi.`,
+      speechText: `Mavzuni hayotimiz bilan bog‘laymiz: ${lessonAnalogy}.`,
       displayText: `💡 **Hayotiy Misol:**\n${lessonAnalogy}`,
     }] : []),
     {
@@ -161,16 +161,16 @@ export function RobotCompanion({
       elementId: 'lesson-example-section',
       title: '4. Kod Namunasi',
       pointingDirection: 'left',
-      speechText: `Endi esa amaliy kodga e’tibor bering. JavaScript tilida konsolga xabar chiqarish uchun console.log buyrug‘idan foydalanamiz. Qavs ichidagi matn ekranda aks etadi.`,
-      displayText: `💻 **Kod Namunasi:**\n\`console.log\` buyrug‘i orqali ekranga ma’lumot chiqaramiz.`,
+      speechText: `Chap tomondagi amaliy kod namunasiga e’tibor bering. Buyruqlar qanday tartibda yozilganini yaxshilab tahlil qiling.`,
+      displayText: `💻 **Kod Namunasi:**\nChap tomondagi kod namunasini ko‘rib chiqing.`,
     },
     {
       id: 'step-editor',
       elementId: 'lesson-code-editor',
       title: '5. Amaliy Topshiriq',
       pointingDirection: 'right',
-      speechText: `Endi navbat sizga! O‘ng tomondagi muharrirda topshiriq shartiga mos kodni yozing va 'Ishga tushirish' tugmasini bosing. Agar xatolik bo‘lsa, xavotir olmang — men darhol xato qatorga borib, qanday to‘g‘irlashni tushuntirib beraman!`,
-      displayText: `🚀 **Amaliyot Vaqti!**\nMuharrirda kodingizni yozing va "Ishga tushirish" tugmasini bosing. Men yoningizdaman!`,
+      speechText: `Endi navbat sizga! O‘ng tomondagi kod muharririda topshiriq shartiga mos kodni yozing va tekshirish tugmasini bosing. Agar xatolik bo‘lsa, men darhol xato qatorga borib, qanday tuzatish kerakligini tushuntirib beraman!`,
+      displayText: `🚀 **Amaliyot Vaqti!**\nMuharrirda kodingizni yozing va topshiriqni bajaring. Men yoningizdaman!`,
     }
   ], [cleanTitle, lessonObjective, lessonAnalogy]);
 

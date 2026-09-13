@@ -184,29 +184,80 @@ export function Robot3DCanvas({
           ctx.fill();
         }
 
-        // Animated soundwave mouth when teacher is speaking
+        // Real Animated Teacher Mouth (Mouth and lips open/close dynamically to speech)
         if (speaking) {
-          ctx.fillStyle = '#38bdf8';
-          ctx.shadowColor = '#0284c7';
-          ctx.shadowBlur = 12;
-          const bars = 7;
-          const barW = 8;
-          const gap = 6;
-          const startX = 256 - ((bars * (barW + gap)) / 2);
-          for (let i = 0; i < bars; i++) {
-            const h = 8 + Math.abs(Math.sin(time * 14 + i * 0.8)) * 32;
+          ctx.save();
+          const speechSpeed = time * 15;
+          // Natural speech cadence & syllables (alternating open, round, wide visemes)
+          const syllableFactor = Math.abs(Math.sin(speechSpeed) * Math.cos(speechSpeed * 0.65));
+          const mouthH = Math.max(5, Math.min(32, 8 + syllableFactor * 26));
+          const mouthW = 46 + Math.sin(speechSpeed * 0.4) * 8;
+          const mouthY = 188;
+
+          // 1. Dark inner mouth cavity
+          ctx.fillStyle = '#060d1f';
+          ctx.beginPath();
+          ctx.ellipse(256, mouthY, mouthW / 2, mouthH / 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 2. Tongue movement when mouth is open
+          if (mouthH > 10) {
+            ctx.fillStyle = '#f43f5e';
             ctx.beginPath();
-            ctx.roundRect(startX + i * (barW + gap), 195 - h / 2, barW, h, 4);
+            ctx.ellipse(256, mouthY + (mouthH * 0.22), (mouthW / 2) * 0.5, (mouthH / 2) * 0.4, 0, 0, Math.PI);
             ctx.fill();
           }
-        } else {
-          // Gentle warm smile
+
+          // 3. Crisp white upper teeth line
+          if (mouthH > 12) {
+            ctx.fillStyle = '#f8fafc';
+            ctx.beginPath();
+            ctx.roundRect(256 - (mouthW * 0.3), mouthY - (mouthH / 2) + 1, mouthW * 0.6, 4, 2);
+            ctx.fill();
+          }
+
+          // 4. Glowing animated lips
           ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = 5;
+          ctx.lineWidth = 4.5;
           ctx.lineCap = 'round';
+          ctx.shadowColor = '#0284c7';
+          ctx.shadowBlur = 14;
+
           ctx.beginPath();
-          ctx.arc(256, 180, 22, 0.2 * Math.PI, 0.8 * Math.PI);
+          // Upper lip
+          ctx.moveTo(256 - mouthW / 2, mouthY);
+          ctx.quadraticCurveTo(256, mouthY - (mouthH / 2) - 1, 256 + mouthW / 2, mouthY);
+          // Lower lip
+          ctx.quadraticCurveTo(256, mouthY + (mouthH / 2) + 1, 256 - mouthW / 2, mouthY);
           ctx.stroke();
+
+          // 5. Smiling mouth dimple corners
+          ctx.fillStyle = '#38bdf8';
+          ctx.beginPath();
+          ctx.arc(256 - mouthW / 2 - 2, mouthY - 1, 2.5, 0, Math.PI * 2);
+          ctx.arc(256 + mouthW / 2 + 2, mouthY - 1, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+        } else {
+          // Warm smiling friendly mouth
+          ctx.save();
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 5.5;
+          ctx.lineCap = 'round';
+          ctx.shadowColor = '#0284c7';
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.arc(256, 178, 24, 0.18 * Math.PI, 0.82 * Math.PI);
+          ctx.stroke();
+
+          // Dimple corners
+          ctx.fillStyle = '#38bdf8';
+          ctx.beginPath();
+          ctx.arc(234, 191, 3, 0, Math.PI * 2);
+          ctx.arc(278, 191, 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
         }
       }
 
@@ -401,50 +452,99 @@ export function Robot3DCanvas({
         antennaTip.material = glowMaterial;
       }
 
-      // 4. Pointing Arm Gestures 👉 👈
+      // 4. Dynamic Teacher Arm & Hand Gestures 👉 👈
       if (curPointing) {
         if (curDir === 'left') {
           // Point LEFT towards the content on the left side
-          leftArmGroup.rotation.x = THREE.MathUtils.lerp(leftArmGroup.rotation.x, -0.65, 0.12);
-          leftArmGroup.rotation.z = THREE.MathUtils.lerp(leftArmGroup.rotation.z, -0.85, 0.12);
-          leftArmGroup.rotation.y = THREE.MathUtils.lerp(leftArmGroup.rotation.y, -0.4, 0.12);
+          const pointGesture = curSpeaking ? Math.sin(t * 5.0) * 0.12 : 0;
+          const wristPulse = curSpeaking ? Math.sin(t * 6.5) * 0.2 : 0;
 
-          rightArmGroup.rotation.x = THREE.MathUtils.lerp(rightArmGroup.rotation.x, 0, 0.1);
-          rightArmGroup.rotation.z = THREE.MathUtils.lerp(rightArmGroup.rotation.z, 0.15, 0.1);
+          // Left pointing arm articulates and pulses towards the target
+          leftArmGroup.rotation.x = THREE.MathUtils.lerp(leftArmGroup.rotation.x, -0.65 + pointGesture, 0.14);
+          leftArmGroup.rotation.z = THREE.MathUtils.lerp(leftArmGroup.rotation.z, -0.85 + pointGesture * 0.35, 0.14);
+          leftArmGroup.rotation.y = THREE.MathUtils.lerp(leftArmGroup.rotation.y, -0.4, 0.14);
+          leftHandGroup.rotation.z = THREE.MathUtils.lerp(leftHandGroup.rotation.z, wristPulse, 0.15);
+          leftHandGroup.rotation.x = THREE.MathUtils.lerp(leftHandGroup.rotation.x, pointGesture * 0.8, 0.15);
 
-          // Head and body tilt towards left
-          headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, -0.45, 0.12);
+          // Right arm: gestures expressively like a human teacher explaining
+          const freeLift = curSpeaking ? -0.42 + Math.sin(t * 4.2) * 0.2 : 0;
+          const freeSway = curSpeaking ? 0.35 + Math.cos(t * 3.6) * 0.18 : 0.15;
+          rightArmGroup.rotation.x = THREE.MathUtils.lerp(rightArmGroup.rotation.x, freeLift, 0.12);
+          rightArmGroup.rotation.z = THREE.MathUtils.lerp(rightArmGroup.rotation.z, freeSway, 0.12);
+          rightArmGroup.rotation.y = THREE.MathUtils.lerp(rightArmGroup.rotation.y, curSpeaking ? 0.35 : 0, 0.12);
+          rightHandGroup.rotation.y = THREE.MathUtils.lerp(rightHandGroup.rotation.y, curSpeaking ? Math.sin(t * 5.0) * 0.35 : 0, 0.15);
+
+          // Head tilts and turns towards left
+          headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, -0.42 + (curSpeaking ? Math.sin(t * 2.5) * 0.08 : 0), 0.12);
+          headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, curSpeaking ? Math.sin(t * 6.5) * 0.08 : 0, 0.15);
           robotRoot.rotation.y = THREE.MathUtils.lerp(robotRoot.rotation.y, -0.25, 0.12);
 
-          const fingerGlow = 1 + Math.sin(t * 12) * 0.2;
+          const fingerGlow = 1 + (curSpeaking ? Math.sin(t * 14) * 0.35 : Math.sin(t * 8) * 0.15);
           leftFingerTip.scale.set(fingerGlow, fingerGlow, fingerGlow);
         } else {
           // Point RIGHT towards the editor on the right side
-          rightArmGroup.rotation.x = THREE.MathUtils.lerp(rightArmGroup.rotation.x, -0.65, 0.12);
-          rightArmGroup.rotation.z = THREE.MathUtils.lerp(rightArmGroup.rotation.z, 0.85, 0.12);
-          rightArmGroup.rotation.y = THREE.MathUtils.lerp(rightArmGroup.rotation.y, 0.4, 0.12);
+          const pointGesture = curSpeaking ? Math.sin(t * 5.0) * 0.12 : 0;
+          const wristPulse = curSpeaking ? -Math.sin(t * 6.5) * 0.2 : 0;
 
-          leftArmGroup.rotation.x = THREE.MathUtils.lerp(leftArmGroup.rotation.x, 0, 0.1);
-          leftArmGroup.rotation.z = THREE.MathUtils.lerp(leftArmGroup.rotation.z, -0.15, 0.1);
+          // Right pointing arm articulates and pulses towards the editor
+          rightArmGroup.rotation.x = THREE.MathUtils.lerp(rightArmGroup.rotation.x, -0.65 + pointGesture, 0.14);
+          rightArmGroup.rotation.z = THREE.MathUtils.lerp(rightArmGroup.rotation.z, 0.85 - pointGesture * 0.35, 0.14);
+          rightArmGroup.rotation.y = THREE.MathUtils.lerp(rightArmGroup.rotation.y, 0.4, 0.14);
+          rightHandGroup.rotation.z = THREE.MathUtils.lerp(rightHandGroup.rotation.z, wristPulse, 0.15);
+          rightHandGroup.rotation.x = THREE.MathUtils.lerp(rightHandGroup.rotation.x, pointGesture * 0.8, 0.15);
 
-          // Head and body tilt towards right
-          headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, 0.45, 0.12);
+          // Left arm: gestures expressively like a human teacher explaining
+          const freeLift = curSpeaking ? -0.42 + Math.sin(t * 4.2) * 0.2 : 0;
+          const freeSway = curSpeaking ? -0.35 - Math.cos(t * 3.6) * 0.18 : -0.15;
+          leftArmGroup.rotation.x = THREE.MathUtils.lerp(leftArmGroup.rotation.x, freeLift, 0.12);
+          leftArmGroup.rotation.z = THREE.MathUtils.lerp(leftArmGroup.rotation.z, freeSway, 0.12);
+          leftArmGroup.rotation.y = THREE.MathUtils.lerp(leftArmGroup.rotation.y, curSpeaking ? -0.35 : 0, 0.12);
+          leftHandGroup.rotation.y = THREE.MathUtils.lerp(leftHandGroup.rotation.y, curSpeaking ? -Math.sin(t * 5.0) * 0.35 : 0, 0.15);
+
+          // Head tilts and turns towards right
+          headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, 0.42 - (curSpeaking ? Math.sin(t * 2.5) * 0.08 : 0), 0.12);
+          headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, curSpeaking ? Math.sin(t * 6.5) * 0.08 : 0, 0.15);
           robotRoot.rotation.y = THREE.MathUtils.lerp(robotRoot.rotation.y, 0.25, 0.12);
 
-          const fingerGlow = 1 + Math.sin(t * 12) * 0.2;
+          const fingerGlow = 1 + (curSpeaking ? Math.sin(t * 14) * 0.35 : Math.sin(t * 8) * 0.15);
           rightFingerTip.scale.set(fingerGlow, fingerGlow, fingerGlow);
         }
+      } else if (curSpeaking) {
+        // Teacher Explaining with Both Hands (Natural lecturer gesticulation)
+        const leftLift = -0.42 + Math.sin(t * 4.5) * 0.2;
+        const leftSpread = -0.32 + Math.cos(t * 3.2) * 0.15;
+        leftArmGroup.rotation.x = THREE.MathUtils.lerp(leftArmGroup.rotation.x, leftLift, 0.12);
+        leftArmGroup.rotation.z = THREE.MathUtils.lerp(leftArmGroup.rotation.z, leftSpread, 0.12);
+        leftArmGroup.rotation.y = THREE.MathUtils.lerp(leftArmGroup.rotation.y, -0.25, 0.12);
+        leftHandGroup.rotation.x = THREE.MathUtils.lerp(leftHandGroup.rotation.x, Math.sin(t * 5.5) * 0.25, 0.14);
+
+        const rightLift = -0.42 + Math.cos(t * 4.2) * 0.2;
+        const rightSpread = 0.32 - Math.sin(t * 3.2) * 0.15;
+        rightArmGroup.rotation.x = THREE.MathUtils.lerp(rightArmGroup.rotation.x, rightLift, 0.12);
+        rightArmGroup.rotation.z = THREE.MathUtils.lerp(rightArmGroup.rotation.z, rightSpread, 0.12);
+        rightArmGroup.rotation.y = THREE.MathUtils.lerp(rightArmGroup.rotation.y, 0.25, 0.12);
+        rightHandGroup.rotation.x = THREE.MathUtils.lerp(rightHandGroup.rotation.x, Math.cos(t * 5.5) * 0.25, 0.14);
+
+        // Head nods and moves in conversation
+        headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, Math.sin(t * 6.5) * 0.08, 0.14);
+        headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, Math.sin(t * 2.0) * 0.15, 0.1);
+        headGroup.rotation.z = THREE.MathUtils.lerp(headGroup.rotation.z, Math.sin(t * 2.8) * 0.05, 0.1);
+        robotRoot.rotation.y = THREE.MathUtils.lerp(robotRoot.rotation.y, 0, 0.08);
       } else {
         // Natural resting posture
         leftArmGroup.rotation.x = THREE.MathUtils.lerp(leftArmGroup.rotation.x, 0, 0.08);
         leftArmGroup.rotation.z = THREE.MathUtils.lerp(leftArmGroup.rotation.z, -0.15 + Math.sin(t * 2) * 0.04, 0.08);
         leftArmGroup.rotation.y = THREE.MathUtils.lerp(leftArmGroup.rotation.y, 0, 0.08);
+        leftHandGroup.rotation.set(0, 0, 0);
 
         rightArmGroup.rotation.x = THREE.MathUtils.lerp(rightArmGroup.rotation.x, 0, 0.08);
         rightArmGroup.rotation.z = THREE.MathUtils.lerp(rightArmGroup.rotation.z, 0.15 - Math.sin(t * 2) * 0.04, 0.08);
         rightArmGroup.rotation.y = THREE.MathUtils.lerp(rightArmGroup.rotation.y, 0, 0.08);
+        rightHandGroup.rotation.set(0, 0, 0);
 
+        headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, 0, 0.08);
         headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, Math.sin(t * 1.2) * 0.12, 0.08);
+        headGroup.rotation.z = THREE.MathUtils.lerp(headGroup.rotation.z, 0, 0.08);
         robotRoot.rotation.y = THREE.MathUtils.lerp(robotRoot.rotation.y, 0, 0.08);
       }
 

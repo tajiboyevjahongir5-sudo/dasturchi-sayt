@@ -5,28 +5,20 @@ import {
   Volume2, 
   VolumeX, 
   Square, 
-  RotateCcw, 
-  Sparkles, 
   X, 
-  Bot, 
-  AlertTriangle, 
-  Lightbulb, 
-  Headphones,
-  GraduationCap,
-  Code2,
-  Pause,
-  Play
+  GraduationCap, 
+  Pause, 
+  Play 
 } from 'lucide-react';
 import { RobotAvatar, RobotMood } from './RobotAvatar';
 import { 
   getLessonGreeting, 
   diagnoseErrorForSpeech, 
   getSuccessCelebration, 
-  getHintSpeech,
-  formatTextForSpeech,
+  getHintSpeech, 
+  formatTextForSpeech, 
   RobotSpeechScript 
 } from './robot-dialogue';
-import { Button } from '@/components/ui/button';
 
 export interface LectureStep {
   id: string;
@@ -87,7 +79,6 @@ export function RobotCompanion({
 
   // UI state
   const [isMinimized, setIsMinimized] = useState(false);
-  const [isBubbleOpen, setIsBubbleOpen] = useState(true);
   const [currentScript, setCurrentScript] = useState<RobotSpeechScript | null>(() => 
     getLessonGreeting(lessonTitle, lessonObjective)
   );
@@ -435,7 +426,6 @@ export function RobotCompanion({
     setPointingDirection(step.pointingDirection);
     setIsPointing(true);
     setIsMinimized(false);
-    setIsBubbleOpen(true);
 
     const script: RobotSpeechScript = {
       id: step.id,
@@ -538,7 +528,6 @@ export function RobotCompanion({
         const diag = diagnoseErrorForSpeech(lastError, userCode);
         setCurrentScript(diag);
         setMood('alert');
-        setIsBubbleOpen(true);
         setIsMinimized(false);
 
         speakText(diag.speechText);
@@ -559,7 +548,6 @@ export function RobotCompanion({
       const celebration = getSuccessCelebration(50);
       setCurrentScript(celebration);
       setMood('celebrate');
-      setIsBubbleOpen(true);
       speakText(celebration.speechText);
     } else if (!isPassed) {
       prevPassedRef.current = false;
@@ -574,7 +562,6 @@ export function RobotCompanion({
       const hintObj = getHintSpeech(hints[hintsUsedCount - 1], hintsUsedCount);
       setCurrentScript(hintObj);
       setMood('talking');
-      setIsBubbleOpen(true);
       speakText(hintObj.speechText);
     }
   }, [hintsUsedCount, hints, speakText]);
@@ -633,10 +620,7 @@ export function RobotCompanion({
       {isMinimized ? (
         <button
           type="button"
-          onClick={() => {
-            setIsMinimized(false);
-            setIsBubbleOpen(true);
-          }}
+          onClick={() => setIsMinimized(false)}
           className="group relative flex items-center gap-3 p-2 rounded-2xl bg-card/95 backdrop-blur-xl border-2 border-primary shadow-2xl hover:scale-105 transition-all duration-300 active:scale-95"
           title="Robo-Ustozni ochish"
         >
@@ -650,11 +634,11 @@ export function RobotCompanion({
           </div>
         </button>
       ) : (
-        /* EXPANDED 3D TEACHER & SPEECH PANEL */
-        <div className="flex flex-col items-end gap-1.5 max-w-[340px] sm:max-w-[400px]">
-          {/* Visual Pointer Callout Badge */}
+        /* 3D TEACHER & SLEEK FLOATING CONTROLS (NO TEXT MODAL!) */
+        <div className="flex flex-col items-center gap-1 select-none">
+          {/* Visual Pointer Callout Badge (Small pointer label only, NO paragraph text) */}
           {isPointing && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500 text-slate-950 text-[11px] font-black shadow-lg shadow-cyan-500/30 animate-bounce self-start mb-0.5">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500 text-slate-950 text-[11px] font-black shadow-lg shadow-cyan-500/40 animate-bounce mb-0.5">
               <span>{pointingDirection === 'left' ? '👈' : '👉'}</span>
               <span>
                 {targetLineNumber !== null ? `${targetLineNumber}-qatorga qarang!` : 'Diqqat qiling!'}
@@ -662,256 +646,118 @@ export function RobotCompanion({
             </div>
           )}
 
-          {/* Speech Bubble Card */}
-          {isBubbleOpen && currentScript && (
-            <div className="w-full rounded-2xl border-2 border-primary/40 bg-card/95 backdrop-blur-2xl shadow-2xl p-4 space-y-3 animate-in zoom-in-95 duration-200 text-foreground">
-              {/* Bubble Header */}
-              <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-primary/20 text-primary flex items-center justify-center font-bold text-xs">
-                    <Bot className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-xs leading-none flex items-center gap-1.5 text-foreground">
-                      <span>Robo-Ustoz</span>
-                      {isSpeaking && (
-                        <span className="flex items-center gap-0.5 text-[9px] text-emerald-500 font-semibold px-1.5 py-0.2 rounded-full bg-emerald-500/10">
-                          <Headphones className="w-2.5 h-2.5 animate-pulse" />
-                          tushuntirmoqda...
-                        </span>
-                      )}
-                      {isLoadingAudio && (
-                        <span className="flex items-center gap-0.5 text-[9px] text-amber-500 font-semibold px-1.5 py-0.2 rounded-full bg-amber-500/10 animate-pulse">
-                          ovoz tayyorlanmoqda...
-                        </span>
-                      )}
-                    </h4>
-                  </div>
-                </div>
+          {/* Freely Floating 3D Robot Mascot */}
+          <div
+            onClick={() => {
+              if (isSpeaking) {
+                stopSpeaking();
+              } else if (isLectureActive) {
+                toggleLecturePause();
+              } else if (currentScript) {
+                speakText(currentScript.speechText);
+              }
+            }}
+            className="relative cursor-pointer transition-transform hover:scale-105 active:scale-95"
+            title={isSpeaking ? "To'xtatish uchun bosing" : "Qayta tushuntirish uchun bosing"}
+          >
+            <RobotAvatar 
+              mood={mood} 
+              isSpeaking={isSpeaking} 
+              isPointing={isPointing} 
+              pointingDirection={pointingDirection} 
+              size={165} 
+            />
+            {/* Soft glowing elliptical hover shadow projected below */}
+            <div className="w-28 h-3.5 rounded-full bg-cyan-400/30 blur-md mx-auto -mt-3 animate-pulse" />
+          </div>
 
-                {/* Voice & Window Controls */}
-                <div className="flex items-center gap-1">
-                  {/* Voice switcher (Madina / Sardor) */}
-                  <button
-                    type="button"
-                    onClick={toggleVoice}
-                    className="px-2 py-0.5 rounded-md bg-muted text-[10px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
-                    title="Ovozni almashtirish (Madina / Sardor)"
-                  >
-                    {voice === 'uz-UZ-MadinaNeural' ? 'Madina 👩' : 'Sardor 👨'}
-                  </button>
+          {/* Compact Floating Controls Pill (Unobtrusive glassmorphic toolbar, NO TEXT BLOCKS) */}
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/90 border border-cyan-500/30 shadow-2xl backdrop-blur-xl text-slate-200 mt-1">
+            {/* Lecture Step Counter */}
+            {isLectureActive && (
+              <span className="text-[10px] font-black text-cyan-400 px-2 py-0.5 rounded-full bg-cyan-500/15 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                {lectureStepIndex + 1}/{lectureSteps.length}
+              </span>
+            )}
 
-                  {/* Mute button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!isMuted && isSpeaking) stopSpeaking();
-                      setIsMuted(!isMuted);
-                    }}
-                    className={`p-1 rounded-md transition-colors ${
-                      isMuted 
-                        ? 'text-red-500 bg-red-500/10' 
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                    }`}
-                    title={isMuted ? 'Ovozni yoqish' : 'Ovozni o‘chirish'}
-                  >
-                    {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                  </button>
-
-                  {/* Stop / Replay */}
-                  {isSpeaking ? (
-                    <button
-                      type="button"
-                      onClick={stopSpeaking}
-                      className="p-1 rounded-md text-amber-500 hover:bg-amber-500/10 transition-colors"
-                      title="Ovozni to‘xtatish"
-                    >
-                      <Square className="w-3.5 h-3.5 fill-current" />
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => speakText(currentScript.speechText)}
-                      className="p-1 rounded-md text-primary hover:bg-primary/10 transition-colors"
-                      title="Qayta tinglash"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-
-                  {/* Close / Dismiss */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      stopLecture();
-                      setIsBubbleOpen(false);
-                    }}
-                    className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
-                    title="Yopish"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Bubble Body Content */}
-              <div className="text-xs leading-relaxed space-y-2 max-h-52 overflow-y-auto pr-1 no-scrollbar">
-                <p className="font-semibold text-primary flex items-center gap-1.5 text-[11px]">
-                  {mood === 'alert' && <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />}
-                  {mood === 'celebrate' && <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
-                  {mood === 'talking' && <Lightbulb className="w-3.5 h-3.5 text-cyan-500 shrink-0" />}
-                  <span>{currentScript.title}</span>
-                </p>
-
-                <div className="text-muted-foreground whitespace-pre-wrap font-normal text-xs leading-relaxed">
-                  {currentScript.displayText}
-                </div>
-              </div>
-
-              {/* Continuous Auto-Lecture Controls */}
-              {isLectureActive ? (
-                <div className="pt-2 border-t border-border/50 space-y-2">
-                  {/* Step indicator bar */}
-                  <div className="flex items-center justify-between text-[10px] text-muted-foreground font-semibold">
-                    <span className="flex items-center gap-1 text-primary">
-                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                      Qadamma-qadam tushuntirilmoqda ({lectureStepIndex + 1}/{lectureSteps.length})
-                    </span>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={toggleLecturePause}
-                        className="px-2 py-0.5 rounded bg-muted text-[10px] font-semibold text-foreground hover:bg-muted/80 flex items-center gap-1"
-                      >
-                        {isLecturePaused ? <Play className="w-2.5 h-2.5" /> : <Pause className="w-2.5 h-2.5" />}
-                        <span>{isLecturePaused ? 'Davom etish' : 'Pauza'}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={stopLecture}
-                        className="px-2 py-0.5 rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 text-[10px]"
-                      >
-                        To‘xtatish
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Visual Progress Bar */}
-                  <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-primary to-cyan-400 transition-all duration-500"
-                      style={{ width: `${((lectureStepIndex + 1) / lectureSteps.length) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ) : targetLineNumber !== null ? (
-                // Error Navigation Controls
-                <div className="pt-2 border-t border-border/50 flex items-center justify-between gap-2">
-                  <span className="text-[10px] text-muted-foreground">
-                    Xato qatori: <strong className="text-red-500 font-mono text-xs">{targetLineNumber}</strong>
-                  </span>
-
-                  <div className="flex items-center gap-1.5">
-                    {onHighlightLine && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onHighlightLine(targetLineNumber)}
-                        className="h-7 text-[11px] font-bold gap-1 text-primary border-primary/40 hover:bg-primary/10"
-                      >
-                        <Code2 className="w-3 h-3" />
-                        <span>Qatorga o‘tish</span>
-                      </Button>
-                    )}
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={stopLecture}
-                      className="h-7 text-[10px] text-muted-foreground"
-                    >
-                      Burchakka qaytish
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                // Idle Tour Replay CTA
-                <div className="pt-2 border-t border-border/50">
-                  <Button
-                    type="button"
-                    variant="gradient"
-                    size="sm"
-                    onClick={startCompleteLecture}
-                    className="h-7 text-[11px] font-bold gap-1.5 w-full shadow-md"
-                  >
-                    <GraduationCap className="w-3.5 h-3.5" />
-                    <span>Darsni to‘liq tushuntirish 🎓</span>
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Freely Floating 3D Robot Mascot (NO dark box wrapper!) */}
-          <div className="flex items-center gap-2">
-            {/* Quick action buttons floating beside robot */}
-            <div className="flex flex-col gap-1.5 opacity-90 hover:opacity-100 transition-opacity">
+            {/* Play / Pause / Replay */}
+            {isLectureActive ? (
+              <button
+                type="button"
+                onClick={toggleLecturePause}
+                className="p-1.5 rounded-full hover:bg-slate-800 text-cyan-400 transition-colors"
+                title={isLecturePaused ? 'Davom etish' : 'Pauza'}
+              >
+                {isLecturePaused ? <Play className="w-3.5 h-3.5 fill-current" /> : <Pause className="w-3.5 h-3.5 fill-current" />}
+              </button>
+            ) : isSpeaking ? (
+              <button
+                type="button"
+                onClick={stopSpeaking}
+                className="p-1.5 rounded-full hover:bg-slate-800 text-amber-400 transition-colors"
+                title="Ovozni to‘xtatish"
+              >
+                <Square className="w-3.5 h-3.5 fill-current" />
+              </button>
+            ) : (
               <button
                 type="button"
                 onClick={startCompleteLecture}
-                className="w-8 h-8 rounded-xl bg-card border border-border shadow-lg hover:border-primary flex items-center justify-center text-primary text-xs transition-all hover:scale-110 active:scale-95"
+                className="p-1.5 rounded-full hover:bg-slate-800 text-cyan-400 transition-colors"
                 title="Darsni to‘liq tushuntirish"
               >
-                <GraduationCap className="w-4 h-4" />
+                <GraduationCap className="w-3.5 h-3.5" />
               </button>
+            )}
 
-              <button
-                type="button"
-                onClick={() => {
-                  if (!isBubbleOpen) setIsBubbleOpen(true);
-                  if (currentScript) speakText(currentScript.speechText);
-                }}
-                className="w-8 h-8 rounded-xl bg-card border border-border shadow-lg hover:border-primary flex items-center justify-center text-primary text-xs transition-all hover:scale-110 active:scale-95"
-                title="Robo-Ustozni gapirtirish"
-              >
-                <Volume2 className="w-4 h-4" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsMinimized(true)}
-                className="w-8 h-8 rounded-xl bg-card border border-border shadow-lg hover:border-primary flex items-center justify-center text-muted-foreground hover:text-foreground text-xs transition-all hover:scale-110 active:scale-95"
-                title="Yig‘ib qo‘yish"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* True 3D Robot Canvas with Hover Shadow (Floating directly on screen) */}
-            <div
-              onClick={() => {
-                setIsBubbleOpen(!isBubbleOpen);
-                if (!isBubbleOpen && currentScript) {
-                  speakText(currentScript.speechText);
-                }
-              }}
-              className="relative cursor-pointer transition-transform hover:scale-105 active:scale-95"
-              title="Robo-Ustoz 3D — Haqiqiy Ustozdek Tushuntiruvchi Qahramon"
+            {/* Voice Switcher (Madina / Sardor) */}
+            <button
+              type="button"
+              onClick={toggleVoice}
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800/90 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors flex items-center gap-1"
+              title="Ovozni almashtirish (Madina / Sardor)"
             >
-              <RobotAvatar 
-                mood={mood} 
-                isSpeaking={isSpeaking} 
-                isPointing={isPointing} 
-                pointingDirection={pointingDirection}
-                size={155} 
-              />
-              {/* Soft glowing elliptical hover shadow projected below */}
-              <div className="w-24 h-3 rounded-full bg-cyan-400/25 blur-md mx-auto -mt-3 animate-pulse" />
-            </div>
+              {isLoadingAudio && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />}
+              <span>{voice === 'uz-UZ-MadinaNeural' ? 'Madina 👩' : 'Sardor 👨'}</span>
+            </button>
+
+            {/* Mute button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (!isMuted && isSpeaking) stopSpeaking();
+                setIsMuted(!isMuted);
+              }}
+              className={`p-1.5 rounded-full transition-colors ${
+                isMuted ? 'text-red-400 bg-red-500/10' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+              title={isMuted ? 'Ovozni yoqish' : 'Ovozni o‘chirish'}
+            >
+              {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+            </button>
+
+            {/* Stop Lecture */}
+            {isLectureActive && (
+              <button
+                type="button"
+                onClick={stopLecture}
+                className="p-1.5 rounded-full hover:bg-red-500/20 text-red-400 transition-colors"
+                title="Darsni to‘xtatish"
+              >
+                <Square className="w-3 h-3 fill-current" />
+              </button>
+            )}
+
+            {/* Minimize */}
+            <button
+              type="button"
+              onClick={() => setIsMinimized(true)}
+              className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+              title="Yig‘ib qo‘yish"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       )}

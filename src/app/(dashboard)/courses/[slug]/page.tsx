@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { CourseThumbnail } from '@/components/learning/CourseThumbnail';
 import { 
   Clock, 
   BookOpen, 
@@ -93,13 +93,14 @@ export default function CourseDetailPage({
       {/* Course Header Banner */}
       <div className="relative rounded-3xl border border-border/80 bg-card overflow-hidden shadow-xl">
         <div className="relative h-60 sm:h-72 w-full bg-muted">
-          <Image
-            src={course.thumbnail}
-            alt={course.title}
-            fill
+          <CourseThumbnail
+            thumbnail={course.thumbnail}
+            title={course.title}
+            slug={course.slug}
             className="object-cover"
+            priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-card via-card/70 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-card via-card/70 to-transparent pointer-events-none" />
         </div>
 
         <div className="relative -mt-24 p-6 sm:p-8 space-y-6">

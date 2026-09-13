@@ -2,9 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Clock, BookOpen, ChevronRight, Sparkles } from 'lucide-react';
 import type { Course, CourseProgress } from '@/types';
+import { CourseThumbnail } from './CourseThumbnail';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
@@ -29,14 +29,14 @@ export function CourseCard({ course, progress }: CourseCardProps) {
       <div>
         {/* Thumbnail with overlay gradient */}
         <div className="relative h-44 w-full overflow-hidden bg-muted">
-          <Image
-            src={course.thumbnail}
-            alt={course.title}
-            fill
+          <CourseThumbnail
+            thumbnail={course.thumbnail}
+            title={course.title}
+            slug={course.slug}
             className="object-cover group-hover:scale-105 transition-transform duration-500"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/25 to-transparent" />
-          <div className="absolute top-3 left-3 flex items-center gap-1.5">
+          <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/25 to-transparent pointer-events-none" />
+          <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
             <Badge variant={levelBadge.variant} className="backdrop-blur-md font-semibold text-[11px] shadow-sm">
               {levelBadge.label}
             </Badge>

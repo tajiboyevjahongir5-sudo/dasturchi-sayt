@@ -35,24 +35,22 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const text = searchParams.get('text') || '';
-  const voice = searchParams.get('voice') || 'uz-UZ-MadinaNeural';
 
-  return handleTTS(text, voice);
+  return handleTTS(text);
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const text = body.text || '';
-    const voice = body.voice || 'uz-UZ-MadinaNeural';
 
-    return handleTTS(text, voice);
+    return handleTTS(text);
   } catch {
     return NextResponse.json({ success: false, error: 'Noto‘g‘ri so‘rov tanasi' }, { status: 400 });
   }
 }
 
-async function handleTTS(rawText: string, voiceParam: string) {
+async function handleTTS(rawText: string) {
   const text = rawText.trim();
   if (!text) {
     return NextResponse.json({ success: false, error: 'Matn kiritilmagan' }, { status: 400 });
@@ -61,10 +59,8 @@ async function handleTTS(rawText: string, voiceParam: string) {
   // Limit utterance length to 1000 characters
   const trimmedText = text.length > 1000 ? text.substring(0, 1000) + '...' : text;
 
-  // Supported natural Uzbek voices
-  const voice = voiceParam === 'uz-UZ-SardorNeural' 
-    ? 'uz-UZ-SardorNeural' 
-    : 'uz-UZ-MadinaNeural';
+  // Dedicated natural Uzbek teacher voice (Sardor)
+  const voice = 'uz-UZ-SardorNeural';
 
   const cacheKey = crypto.createHash('md5').update(`v2-96k:${voice}:${trimmedText}`).digest('hex');
 

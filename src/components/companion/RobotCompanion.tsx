@@ -92,8 +92,8 @@ export function RobotCompanion({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [voice, setVoice] = useState<'uz-UZ-MadinaNeural' | 'uz-UZ-SardorNeural'>('uz-UZ-MadinaNeural');
-  const voiceRef = useRef<'uz-UZ-MadinaNeural' | 'uz-UZ-SardorNeural'>(voice);
+  const [voice] = useState<'uz-UZ-SardorNeural'>('uz-UZ-SardorNeural');
+  const voiceRef = useRef<'uz-UZ-SardorNeural'>(voice);
 
   useEffect(() => {
     voiceRef.current = voice;
@@ -183,7 +183,7 @@ export function RobotCompanion({
   const advanceLectureRef = useRef<() => void>(() => {});
 
   // Play natural voice via /api/tts with auto-advance capability
-  const speakText = useCallback(async (textToSpeak: string, forcedVoice?: 'uz-UZ-MadinaNeural' | 'uz-UZ-SardorNeural') => {
+  const speakText = useCallback(async (textToSpeak: string, forcedVoice?: 'uz-UZ-SardorNeural') => {
     if (isMuted || !textToSpeak.trim()) return;
 
     const sessionId = ++speakSessionIdRef.current;
@@ -274,16 +274,6 @@ export function RobotCompanion({
       }
     }
   }, [isMuted, isLecturePaused]);
-
-  // Toggle voice (Madina / Sardor)
-  const toggleVoice = () => {
-    const nextVoice = voice === 'uz-UZ-MadinaNeural' ? 'uz-UZ-SardorNeural' : 'uz-UZ-MadinaNeural';
-    setVoice(nextVoice);
-    voiceRef.current = nextVoice;
-    if (currentScript) {
-      speakText(currentScript.speechText, nextVoice);
-    }
-  };
 
   // --- Dynamic Physical Positioning & Pointing Engine ---
   const updatePosition = useCallback(() => {
@@ -728,16 +718,18 @@ export function RobotCompanion({
               </button>
             )}
 
-            {/* Voice Switcher (Madina / Sardor) */}
-            <button
-              type="button"
-              onClick={toggleVoice}
-              className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800/90 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors flex items-center gap-1"
-              title="Ovozni almashtirish (Madina / Sardor)"
+            {/* Voice Indicator (Sardor - Robo-Ustoz) */}
+            <div
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/20 text-cyan-300 flex items-center gap-1 select-none"
+              title="Robo-Ustoz (Sardor ovozi)"
             >
-              {isLoadingAudio && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />}
-              <span>{voice === 'uz-UZ-MadinaNeural' ? 'Madina 👩' : 'Sardor 👨'}</span>
-            </button>
+              {isLoadingAudio ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+              ) : (
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+              )}
+              <span>Sardor 👨‍🏫</span>
+            </div>
 
             {/* Mute button */}
             <button

@@ -66,7 +66,7 @@ async function handleTTS(rawText: string, voiceParam: string) {
     ? 'uz-UZ-SardorNeural' 
     : 'uz-UZ-MadinaNeural';
 
-  const cacheKey = crypto.createHash('md5').update(`${voice}:${trimmedText}`).digest('hex');
+  const cacheKey = crypto.createHash('md5').update(`v2-96k:${voice}:${trimmedText}`).digest('hex');
 
   // Check cache
   const cachedBuffer = getCachedAudio(cacheKey);
@@ -83,10 +83,10 @@ async function handleTTS(rawText: string, voiceParam: string) {
   }
 
   try {
-    // Generate audio using MsEdgeTTS with timeout guard
+    // Generate audio using MsEdgeTTS with high-fidelity 96kbps MP3
     const ttsPromise = (async () => {
       const tts = new MsEdgeTTS();
-      await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+      await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
       const { audioStream } = tts.toStream(trimmedText);
 
       const chunks: Buffer[] = [];
@@ -123,8 +123,7 @@ async function handleTTS(rawText: string, voiceParam: string) {
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Ovoz hosil qilishda xatolik yuz berdi',
-        fallbackToSpeechSynthesis: true 
+        error: 'Ovoz hosil qilishda xatolik yuz berdi'
       }, 
       { status: 500 }
     );

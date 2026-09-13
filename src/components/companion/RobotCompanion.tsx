@@ -71,13 +71,21 @@ export function RobotCompanion({
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [voice, setVoice] = useState<'uz-UZ-MadinaNeural' | 'uz-UZ-SardorNeural'>('uz-UZ-MadinaNeural');
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const voiceRef = useRef<'uz-UZ-MadinaNeural' | 'uz-UZ-SardorNeural'>(voice);
 
-  // Stop currently playing speech
+  useEffect(() => {
+    voiceRef.current = voice;
+  }, [voice]);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const speakSessionIdRef = useRef(0);
+
+  // Stop any currently playing speech immediately
   const stopSpeaking = useCallback(() => {
+    speakSessionIdRef.current++;
     if (audioRef.current) {
       audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+      audioRef.current.src = '';
     }
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -87,98 +95,121 @@ export function RobotCompanion({
     setMood((m) => (m === 'talking' ? 'idle' : m));
   }, []);
 
-  // Fallback speech synthesizer
-  const fallbackWebSpeech = useCallback((text: string) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      setIsSpeaking(false);
-      setIsLoadingAudio(false);
-      return;
+  // Cancel any browser speech synthesis on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
     }
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'uz-UZ';
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      setIsLoadingAudio(false);
-      setMood('idle');
+    return () => {
+      stopSpeaking();
     };
+  }, [stopSpeaking]);
 
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-      setIsLoadingAudio(false);
-      setMood('idle');
-    };
-
-    window.speechSynthesis.speak(utterance);
-    setIsSpeaking(true);
-    setIsLoadingAudio(false);
-  }, []);
-
-  // Play natural voice via /api/tts with graceful fallback
-  const speakText = useCallback(async (textToSpeak: string, forcedVoice?: typeof voice) => {
+  // Play pure human neural Uzbek voice via /api/tts (NO robotic synthesis fallback)
+  const speakText = useCallback(async (textToSpeak: string, forcedVoice?: 'uz-UZ-MadinaNeural' | 'uz-UZ-SardorNeural') => {
     if (isMuted || !textToSpeak.trim()) return;
 
-    stopSpeaking();
+    const sessionId = ++speakSessionIdRef.current;
+
+    // Stop current audio cleanly
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+
     setIsLoadingAudio(true);
     setMood('talking');
 
     const cleanText = formatTextForSpeech(textToSpeak);
-    const selectedVoice = forcedVoice || voice;
+    const selectedVoice = forcedVoice || voiceRef.current;
 
     try {
       const res = await fetch(`/api/tts?text=${encodeURIComponent(cleanText)}&voice=${selectedVoice}`);
       
+      // If user started another speech or stopped, discard this response
+      if (sessionId !== speakSessionIdRef.current) {
+        return;
+      }
+
       if (!res.ok) {
         throw new Error('TTS API failed');
       }
 
       const audioBlob = await res.blob();
+      if (sessionId !== speakSessionIdRef.current) {
+        return;
+      }
+
       const audioUrl = URL.createObjectURL(audioBlob);
 
       if (!audioRef.current) {
         audioRef.current = new Audio();
+      } else {
+        audioRef.current.pause();
       }
 
       audioRef.current.src = audioUrl;
       audioRef.current.onended = () => {
-        setIsSpeaking(false);
-        setIsLoadingAudio(false);
-        setMood('idle');
+        if (sessionId === speakSessionIdRef.current) {
+          setIsSpeaking(false);
+          setIsLoadingAudio(false);
+          setMood('idle');
+        }
         URL.revokeObjectURL(audioUrl);
       };
 
       audioRef.current.onerror = () => {
-        fallbackWebSpeech(cleanText);
+        if (sessionId === speakSessionIdRef.current) {
+          setIsSpeaking(false);
+          setIsLoadingAudio(false);
+          setMood('idle');
+        }
+        URL.revokeObjectURL(audioUrl);
       };
 
       await audioRef.current.play();
-      setIsSpeaking(true);
-      setIsLoadingAudio(false);
-    } catch {
-      // Fallback to browser Web Speech API
-      fallbackWebSpeech(cleanText);
+      if (sessionId === speakSessionIdRef.current) {
+        setIsSpeaking(true);
+        setIsLoadingAudio(false);
+      }
+    } catch (err: unknown) {
+      if ((err as Error)?.name === 'AbortError') {
+        // Normal user interruption, ignore
+        return;
+      }
+      if (sessionId === speakSessionIdRef.current) {
+        setIsSpeaking(false);
+        setIsLoadingAudio(false);
+        setMood('idle');
+      }
     }
-  }, [isMuted, voice, stopSpeaking, fallbackWebSpeech]);
+  }, [isMuted]);
 
   // Toggle voice (Madina / Sardor)
   const toggleVoice = () => {
     const nextVoice = voice === 'uz-UZ-MadinaNeural' ? 'uz-UZ-SardorNeural' : 'uz-UZ-MadinaNeural';
     setVoice(nextVoice);
+    voiceRef.current = nextVoice;
     if (currentScript) {
       speakText(currentScript.speechText, nextVoice);
     }
   };
 
-  // 1. Initial Greeting when lesson opens
+  // 1. Initial Greeting when lesson opens (runs strictly ONCE per lesson mount)
+  const hasGreetedRef = useRef(false);
   useEffect(() => {
+    if (hasGreetedRef.current) return;
+    hasGreetedRef.current = true;
+
+    const greeting = getLessonGreeting(lessonTitle, lessonObjective);
+    setCurrentScript(greeting);
+    setIsBubbleOpen(true);
+
     const timer = setTimeout(() => {
-      const greeting = getLessonGreeting(lessonTitle, lessonObjective);
-      setCurrentScript(greeting);
       setMood('talking');
-      setIsBubbleOpen(true);
       speakText(greeting.speechText);
     }, 1200);
 

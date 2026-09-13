@@ -37,8 +37,11 @@ export function formatTextForSpeech(text: string): string {
     .replace(/API/g, 'A-P-I')
     .replace(/DOM/g, 'D-O-M')
     .replace(/XP/g, 'ikspi')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+    .replace(/[`*#_~>]/g, '')
     .replace(/[{}]/g, '')
-    .replace(/[`*#]/g, '')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 

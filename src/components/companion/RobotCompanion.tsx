@@ -83,6 +83,8 @@ export function RobotCompanion({
     getLessonGreeting(lessonTitle, lessonObjective)
   );
   const [mood, setMood] = useState<RobotMood>('idle');
+  const [flightTilt, setFlightTilt] = useState(0);
+  const prevPosRef = useRef({ x: 0, y: 0 });
 
   // Audio / Speech state
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -601,6 +603,18 @@ export function RobotCompanion({
     }
   };
 
+  // Calculate banking tilt during flight across screen
+  useEffect(() => {
+    const dx = position.x - prevPosRef.current.x;
+    prevPosRef.current = position;
+    if (Math.abs(dx) > 15) {
+      const tilt = Math.max(-12, Math.min(12, dx * 0.05));
+      setFlightTilt(tilt);
+      const timer = setTimeout(() => setFlightTilt(0), 650);
+      return () => clearTimeout(timer);
+    }
+  }, [position]);
+
   return (
     <div
       ref={containerRef}
@@ -608,9 +622,9 @@ export function RobotCompanion({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       style={{
-        transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+        transform: `translate3d(${position.x}px, ${position.y}px, 0) rotate(${flightTilt}deg)`,
         touchAction: 'none',
-        transition: isDragging ? 'none' : 'transform 0.65s cubic-bezier(0.25, 1, 0.5, 1)',
+        transition: isDragging ? 'none' : 'transform 0.72s cubic-bezier(0.34, 1.25, 0.64, 1)',
       }}
       className={`fixed top-0 left-0 z-50 transition-shadow ${
         isDragging ? 'cursor-grabbing select-none' : 'cursor-default'

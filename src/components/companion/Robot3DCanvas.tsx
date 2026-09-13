@@ -79,7 +79,7 @@ export function Robot3DCanvas({
     faceTexture.minFilter = THREE.LinearFilter;
     faceTexture.magFilter = THREE.LinearFilter;
 
-    function drawFace(currentMood: RobotMood, speaking: boolean, time: number) {
+    function drawFace(currentMood: RobotMood, speaking: boolean, time: number, pointingDir: 'left' | 'right', pointing: boolean) {
       ctx.clearRect(0, 0, 512, 256);
 
       // Deep obsidian curved screen background
@@ -96,7 +96,64 @@ export function Robot3DCanvas({
         ctx.stroke();
       }
 
-      // Mood-based expressions
+      // Smooth Blinking Dynamics (Sine wave glide, 160ms blink duration)
+      const blinkCycle = time % 3.6;
+      let blinkAmount = 0; // 0 = fully open, 1 = fully closed
+      if (blinkCycle < 0.16) {
+        blinkAmount = Math.sin((blinkCycle / 0.16) * Math.PI);
+      }
+
+      // Pupil Saccade and Directional Tracking
+      let pupilTargetX = 0;
+      let pupilTargetY = 0;
+      if (pointing) {
+        pupilTargetX = pointingDir === 'left' ? -12 : 12;
+        pupilTargetY = 4;
+      } else {
+        // Natural subtle gaze micro-movements
+        pupilTargetX = Math.sin(time * 0.9) * 4;
+        pupilTargetY = Math.cos(time * 1.3) * 2.5;
+      }
+
+      // Dynamic Animated Eyebrows (Above eyes)
+      ctx.save();
+      const browColor = currentMood === 'celebrate' ? '#fbbf24' : currentMood === 'alert' ? '#f87171' : '#38bdf8';
+      ctx.strokeStyle = browColor;
+      ctx.shadowColor = browColor;
+      ctx.shadowBlur = 12;
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+
+      if (currentMood === 'celebrate') {
+        // Cheerful arched eyebrows
+        ctx.beginPath();
+        ctx.arc(160, 68, 28, 1.1 * Math.PI, 1.9 * Math.PI);
+        ctx.arc(352, 68, 28, 1.1 * Math.PI, 1.9 * Math.PI);
+        ctx.stroke();
+      } else if (currentMood === 'alert') {
+        // Furrowed concerned eyebrows (slanted inward)
+        ctx.beginPath();
+        ctx.moveTo(125, 62);
+        ctx.lineTo(195, 74);
+        ctx.moveTo(387, 62);
+        ctx.lineTo(317, 74);
+        ctx.stroke();
+      } else {
+        // Expressive teacher eyebrows that raise with vocal inflection
+        const browLift = speaking ? Math.sin(time * 3.8) * 5 : 0;
+        const leftBrowY = 66 - browLift + (pointing && pointingDir === 'left' ? -4 : 0);
+        const rightBrowY = 66 - browLift + (pointing && pointingDir === 'right' ? -4 : 0);
+
+        ctx.beginPath();
+        ctx.moveTo(125, leftBrowY + 4);
+        ctx.quadraticCurveTo(160, leftBrowY - 6, 195, leftBrowY + 2);
+        ctx.moveTo(317, rightBrowY + 2);
+        ctx.quadraticCurveTo(352, rightBrowY - 6, 387, rightBrowY + 4);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Mood-based Eyes
       if (currentMood === 'celebrate') {
         // Golden Star Eyes
         ctx.fillStyle = '#fbbf24';
@@ -119,146 +176,133 @@ export function Robot3DCanvas({
 
         drawStar(160, 115, 38);
         drawStar(352, 115, 38);
-
-        // Cheerful smiling arc
-        ctx.strokeStyle = '#fbbf24';
-        ctx.lineWidth = 7;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.arc(256, 170, 35, 0.15 * Math.PI, 0.85 * Math.PI);
-        ctx.stroke();
       } else if (currentMood === 'alert') {
-        // Alert / Error: Concerned wide eyes with pulsing red/amber glow
+        // Alert / Error: Concerned wide glowing eyes
         ctx.fillStyle = '#f87171';
         ctx.shadowColor = '#ef4444';
         ctx.shadowBlur = 25;
 
-        const eyePulse = 36 + Math.sin(time * 10) * 5;
+        const eyePulse = 36 + Math.sin(time * 10) * 4;
         ctx.beginPath();
         ctx.ellipse(160, 115, eyePulse, eyePulse * 1.15, 0, 0, Math.PI * 2);
         ctx.ellipse(352, 115, eyePulse, eyePulse * 1.15, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Dark dilated pupils
+        // Pupils looking nervously
         ctx.fillStyle = '#080d1a';
         ctx.beginPath();
-        ctx.arc(160, 115, 14, 0, Math.PI * 2);
-        ctx.arc(352, 115, 14, 0, Math.PI * 2);
+        ctx.arc(160 + pupilTargetX, 115 + pupilTargetY, 14, 0, Math.PI * 2);
+        ctx.arc(352 + pupilTargetX, 115 + pupilTargetY, 14, 0, Math.PI * 2);
         ctx.fill();
-
-        // Flat concerned mouth
-        ctx.strokeStyle = '#f87171';
-        ctx.lineWidth = 6;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(215, 190);
-        ctx.lineTo(297, 190);
-        ctx.stroke();
       } else {
-        // Friendly Teacher Mode: Expressive glowing cyan rounded eyes
+        // Friendly Teacher Eyes with Smooth Organic Blinking
+        ctx.save();
         ctx.fillStyle = '#38bdf8';
         ctx.shadowColor = '#0284c7';
         ctx.shadowBlur = 24;
 
-        const blinkCycle = time % 3.8;
-        const isBlinking = blinkCycle > 3.65;
+        const baseH = 68;
+        const curEyeH = Math.max(6, baseH * (1 - blinkAmount * 0.92));
+        const curEyeY = 119 - curEyeH / 2;
 
-        if (isBlinking) {
-          // Sleek horizontal blink slit
-          ctx.fillRect(120, 120, 80, 8);
-          ctx.fillRect(312, 120, 80, 8);
-        } else {
-          // Warm smiling friendly eyes (pill shape with slight upward arch)
-          ctx.beginPath();
-          ctx.roundRect(125, 85, 75, 68, 34);
-          ctx.roundRect(312, 85, 75, 68, 34);
-          ctx.fill();
+        ctx.beginPath();
+        ctx.roundRect(125, curEyeY, 75, curEyeH, Math.min(34, curEyeH / 2));
+        ctx.roundRect(312, curEyeY, 75, curEyeH, Math.min(34, curEyeH / 2));
+        ctx.fill();
 
-          // Cute glossy pupil reflections
+        if (blinkAmount < 0.6) {
+          // Specular highlights / gloss catchlights
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
-          ctx.arc(175, 102, 9, 0, Math.PI * 2);
-          ctx.arc(362, 102, 9, 0, Math.PI * 2);
-          ctx.arc(150, 125, 5, 0, Math.PI * 2);
-          ctx.arc(337, 125, 5, 0, Math.PI * 2);
+          // Primary catchlight
+          ctx.arc(170 + pupilTargetX, 102 + pupilTargetY, 8.5, 0, Math.PI * 2);
+          ctx.arc(357 + pupilTargetX, 102 + pupilTargetY, 8.5, 0, Math.PI * 2);
+          // Secondary lower sparkle
+          ctx.arc(148 + pupilTargetX * 0.6, 126 + pupilTargetY * 0.6, 4.5, 0, Math.PI * 2);
+          ctx.arc(335 + pupilTargetX * 0.6, 126 + pupilTargetY * 0.6, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // Mouth Dynamics (Visemes, Speech Cadence & Natural Pauses)
+      const mouthAccent = currentMood === 'celebrate' ? '#fbbf24' : currentMood === 'alert' ? '#f87171' : '#38bdf8';
+      const mouthGlow = currentMood === 'celebrate' ? '#f59e0b' : currentMood === 'alert' ? '#ef4444' : '#0284c7';
+
+      if (speaking) {
+        ctx.save();
+        // Multi-frequency cadence with natural clause micro-pauses
+        const isPause = Math.sin(time * 2.8) > 0.88;
+        const speechSpeed = time * 15;
+        const talkWave = Math.sin(speechSpeed) * 0.5 + Math.sin(speechSpeed * 0.6) * 0.35 + Math.cos(speechSpeed * 1.3) * 0.15;
+        const rawH = isPause ? 4 : Math.max(5, Math.min(34, 11 + talkWave * 22));
+        const mouthW = 46 + Math.sin(time * 6) * 8;
+        const mouthY = 188;
+
+        // 1. Dark inner oral cavity
+        ctx.fillStyle = '#060d1f';
+        ctx.beginPath();
+        ctx.ellipse(256, mouthY, mouthW / 2, rawH / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 2. Tongue movement
+        if (rawH > 10) {
+          ctx.fillStyle = '#f43f5e';
+          ctx.beginPath();
+          ctx.ellipse(256, mouthY + (rawH * 0.22), (mouthW / 2) * 0.52, (rawH / 2) * 0.42, 0, 0, Math.PI);
           ctx.fill();
         }
 
-        // Real Animated Teacher Mouth (Mouth and lips open/close dynamically to speech)
-        if (speaking) {
-          ctx.save();
-          const speechSpeed = time * 15;
-          // Natural speech cadence & syllables (alternating open, round, wide visemes)
-          const syllableFactor = Math.abs(Math.sin(speechSpeed) * Math.cos(speechSpeed * 0.65));
-          const mouthH = Math.max(5, Math.min(32, 8 + syllableFactor * 26));
-          const mouthW = 46 + Math.sin(speechSpeed * 0.4) * 8;
-          const mouthY = 188;
-
-          // 1. Dark inner mouth cavity
-          ctx.fillStyle = '#060d1f';
+        // 3. Crisp white upper teeth line
+        if (rawH > 12) {
+          ctx.fillStyle = '#f8fafc';
           ctx.beginPath();
-          ctx.ellipse(256, mouthY, mouthW / 2, mouthH / 2, 0, 0, Math.PI * 2);
+          ctx.roundRect(256 - (mouthW * 0.3), mouthY - (rawH / 2) + 1, mouthW * 0.6, 4, 2);
           ctx.fill();
-
-          // 2. Tongue movement when mouth is open
-          if (mouthH > 10) {
-            ctx.fillStyle = '#f43f5e';
-            ctx.beginPath();
-            ctx.ellipse(256, mouthY + (mouthH * 0.22), (mouthW / 2) * 0.5, (mouthH / 2) * 0.4, 0, 0, Math.PI);
-            ctx.fill();
-          }
-
-          // 3. Crisp white upper teeth line
-          if (mouthH > 12) {
-            ctx.fillStyle = '#f8fafc';
-            ctx.beginPath();
-            ctx.roundRect(256 - (mouthW * 0.3), mouthY - (mouthH / 2) + 1, mouthW * 0.6, 4, 2);
-            ctx.fill();
-          }
-
-          // 4. Glowing animated lips
-          ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = 4.5;
-          ctx.lineCap = 'round';
-          ctx.shadowColor = '#0284c7';
-          ctx.shadowBlur = 14;
-
-          ctx.beginPath();
-          // Upper lip
-          ctx.moveTo(256 - mouthW / 2, mouthY);
-          ctx.quadraticCurveTo(256, mouthY - (mouthH / 2) - 1, 256 + mouthW / 2, mouthY);
-          // Lower lip
-          ctx.quadraticCurveTo(256, mouthY + (mouthH / 2) + 1, 256 - mouthW / 2, mouthY);
-          ctx.stroke();
-
-          // 5. Smiling mouth dimple corners
-          ctx.fillStyle = '#38bdf8';
-          ctx.beginPath();
-          ctx.arc(256 - mouthW / 2 - 2, mouthY - 1, 2.5, 0, Math.PI * 2);
-          ctx.arc(256 + mouthW / 2 + 2, mouthY - 1, 2.5, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.restore();
-        } else {
-          // Warm smiling friendly mouth
-          ctx.save();
-          ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = 5.5;
-          ctx.lineCap = 'round';
-          ctx.shadowColor = '#0284c7';
-          ctx.shadowBlur = 12;
-          ctx.beginPath();
-          ctx.arc(256, 178, 24, 0.18 * Math.PI, 0.82 * Math.PI);
-          ctx.stroke();
-
-          // Dimple corners
-          ctx.fillStyle = '#38bdf8';
-          ctx.beginPath();
-          ctx.arc(234, 191, 3, 0, Math.PI * 2);
-          ctx.arc(278, 191, 3, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
         }
+
+        // 4. Glowing animated lips with Cupid's bow dip
+        ctx.strokeStyle = mouthAccent;
+        ctx.lineWidth = 4.5;
+        ctx.lineCap = 'round';
+        ctx.shadowColor = mouthGlow;
+        ctx.shadowBlur = 14;
+
+        ctx.beginPath();
+        // Upper lip
+        ctx.moveTo(256 - mouthW / 2, mouthY);
+        ctx.quadraticCurveTo(256, mouthY - (rawH / 2) - 1, 256 + mouthW / 2, mouthY);
+        // Lower lip
+        ctx.quadraticCurveTo(256, mouthY + (rawH / 2) + 1, 256 - mouthW / 2, mouthY);
+        ctx.stroke();
+
+        // 5. Smiling mouth dimple corners
+        ctx.fillStyle = mouthAccent;
+        ctx.beginPath();
+        ctx.arc(256 - mouthW / 2 - 2, mouthY - 1, 2.5, 0, Math.PI * 2);
+        ctx.arc(256 + mouthW / 2 + 2, mouthY - 1, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      } else {
+        // Warm smiling closed lips with dimples
+        ctx.save();
+        ctx.strokeStyle = mouthAccent;
+        ctx.lineWidth = 5.5;
+        ctx.lineCap = 'round';
+        ctx.shadowColor = mouthGlow;
+        ctx.shadowBlur = 14;
+        ctx.beginPath();
+        ctx.arc(256, 178, 24, 0.18 * Math.PI, 0.82 * Math.PI);
+        ctx.stroke();
+
+        // Dimple corners
+        ctx.fillStyle = mouthAccent;
+        ctx.beginPath();
+        ctx.arc(234, 191, 3, 0, Math.PI * 2);
+        ctx.arc(278, 191, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       }
 
       faceTexture.needsUpdate = true;
@@ -365,61 +409,117 @@ export function Robot3DCanvas({
     thrusterRing.position.set(0, -0.88, 0);
     robotRoot.add(thrusterRing);
 
-    // D. Articulated Left Arm (Can point left 👈)
-    const leftArmGroup = new THREE.Group();
-    leftArmGroup.position.set(-0.56, -0.2, 0);
+    // D. Articulated Left Arm (Shoulder -> Upper Arm -> Elbow -> Forearm -> Wrist -> Hand & Fingers)
+    const leftArmGroup = new THREE.Group(); // Shoulder Pivot
+    leftArmGroup.position.set(-0.54, -0.16, 0);
     robotRoot.add(leftArmGroup);
 
-    const leftUpperArmGeo = new THREE.CapsuleGeometry(0.08, 0.28, 16, 16);
+    // Shoulder sphere socket
+    const leftShoulder = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 16), jointMaterial);
+    leftArmGroup.add(leftShoulder);
+
+    // Upper Arm Capsule
+    const leftUpperArmGeo = new THREE.CapsuleGeometry(0.068, 0.20, 16, 16);
     const leftUpperArm = new THREE.Mesh(leftUpperArmGeo, bodyMaterial);
-    leftUpperArm.position.set(0, -0.14, 0);
+    leftUpperArm.position.set(0, -0.10, 0);
     leftArmGroup.add(leftUpperArm);
 
-    const leftHandGroup = new THREE.Group();
-    leftHandGroup.position.set(0, -0.3, 0);
-    leftArmGroup.add(leftHandGroup);
+    // Elbow Group (Bending joint)
+    const leftElbowGroup = new THREE.Group();
+    leftElbowGroup.position.set(0, -0.21, 0);
+    leftArmGroup.add(leftElbowGroup);
 
-    const leftPalm = new THREE.Mesh(new THREE.SphereGeometry(0.085, 16, 16), jointMaterial);
+    // Elbow joint sphere
+    const leftElbow = new THREE.Mesh(new THREE.SphereGeometry(0.068, 16, 16), jointMaterial);
+    leftElbowGroup.add(leftElbow);
+
+    // Forearm Capsule
+    const leftForearmGeo = new THREE.CapsuleGeometry(0.062, 0.18, 16, 16);
+    const leftForearm = new THREE.Mesh(leftForearmGeo, bodyMaterial);
+    leftForearm.position.set(0, -0.09, 0);
+    leftElbowGroup.add(leftForearm);
+
+    // Wrist / Hand Group
+    const leftHandGroup = new THREE.Group();
+    leftHandGroup.position.set(0, -0.19, 0);
+    leftElbowGroup.add(leftHandGroup);
+
+    // Palm & Joint
+    const leftPalm = new THREE.Mesh(new THREE.SphereGeometry(0.072, 16, 16), jointMaterial);
     leftHandGroup.add(leftPalm);
 
     // Extended Pointing Finger on Left Hand 👈
-    const leftFingerGeo = new THREE.CylinderGeometry(0.03, 0.02, 0.26, 16);
-    leftFingerGeo.rotateZ(Math.PI / 2); // Points outward-left
-    leftFingerGeo.translate(-0.13, 0, 0);
+    const leftFingerGeo = new THREE.CylinderGeometry(0.026, 0.018, 0.24, 16);
+    leftFingerGeo.rotateZ(Math.PI / 2);
+    leftFingerGeo.translate(-0.12, 0, 0);
     const leftFinger = new THREE.Mesh(leftFingerGeo, bodyMaterial);
     leftHandGroup.add(leftFinger);
 
-    const leftFingerTip = new THREE.Mesh(new THREE.SphereGeometry(0.035, 16, 16), glowMaterial);
-    leftFingerTip.position.set(-0.26, 0, 0);
+    const leftFingerTip = new THREE.Mesh(new THREE.SphereGeometry(0.032, 16, 16), glowMaterial);
+    leftFingerTip.position.set(-0.24, 0, 0);
     leftHandGroup.add(leftFingerTip);
 
-    // E. Articulated Right Arm (Can point right 👉)
-    const rightArmGroup = new THREE.Group();
-    rightArmGroup.position.set(0.56, -0.2, 0);
+    // Natural Thumb
+    const thumbGeo = new THREE.CylinderGeometry(0.018, 0.014, 0.09, 12);
+    thumbGeo.rotateX(-Math.PI / 4);
+    const leftThumb = new THREE.Mesh(thumbGeo, jointMaterial);
+    leftThumb.position.set(-0.02, 0.03, 0.03);
+    leftHandGroup.add(leftThumb);
+
+    // E. Articulated Right Arm (Shoulder -> Upper Arm -> Elbow -> Forearm -> Wrist -> Hand & Fingers)
+    const rightArmGroup = new THREE.Group(); // Shoulder Pivot
+    rightArmGroup.position.set(0.54, -0.16, 0);
     robotRoot.add(rightArmGroup);
 
-    const rightUpperArmGeo = new THREE.CapsuleGeometry(0.08, 0.28, 16, 16);
+    // Shoulder sphere socket
+    const rightShoulder = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 16), jointMaterial);
+    rightArmGroup.add(rightShoulder);
+
+    // Upper Arm Capsule
+    const rightUpperArmGeo = new THREE.CapsuleGeometry(0.068, 0.20, 16, 16);
     const rightUpperArm = new THREE.Mesh(rightUpperArmGeo, bodyMaterial);
-    rightUpperArm.position.set(0, -0.14, 0);
+    rightUpperArm.position.set(0, -0.10, 0);
     rightArmGroup.add(rightUpperArm);
 
-    const rightHandGroup = new THREE.Group();
-    rightHandGroup.position.set(0, -0.3, 0);
-    rightArmGroup.add(rightHandGroup);
+    // Elbow Group (Bending joint)
+    const rightElbowGroup = new THREE.Group();
+    rightElbowGroup.position.set(0, -0.21, 0);
+    rightArmGroup.add(rightElbowGroup);
 
-    const rightPalm = new THREE.Mesh(new THREE.SphereGeometry(0.085, 16, 16), jointMaterial);
+    // Elbow joint sphere
+    const rightElbow = new THREE.Mesh(new THREE.SphereGeometry(0.068, 16, 16), jointMaterial);
+    rightElbowGroup.add(rightElbow);
+
+    // Forearm Capsule
+    const rightForearmGeo = new THREE.CapsuleGeometry(0.062, 0.18, 16, 16);
+    const rightForearm = new THREE.Mesh(rightForearmGeo, bodyMaterial);
+    rightForearm.position.set(0, -0.09, 0);
+    rightElbowGroup.add(rightForearm);
+
+    // Wrist / Hand Group
+    const rightHandGroup = new THREE.Group();
+    rightHandGroup.position.set(0, -0.19, 0);
+    rightElbowGroup.add(rightHandGroup);
+
+    // Palm & Joint
+    const rightPalm = new THREE.Mesh(new THREE.SphereGeometry(0.072, 16, 16), jointMaterial);
     rightHandGroup.add(rightPalm);
 
     // Extended Pointing Finger on Right Hand 👉
-    const rightFingerGeo = new THREE.CylinderGeometry(0.03, 0.02, 0.26, 16);
-    rightFingerGeo.rotateZ(-Math.PI / 2); // Points outward-right
-    rightFingerGeo.translate(0.13, 0, 0);
+    const rightFingerGeo = new THREE.CylinderGeometry(0.026, 0.018, 0.24, 16);
+    rightFingerGeo.rotateZ(-Math.PI / 2);
+    rightFingerGeo.translate(0.12, 0, 0);
     const rightFinger = new THREE.Mesh(rightFingerGeo, bodyMaterial);
     rightHandGroup.add(rightFinger);
 
-    const rightFingerTip = new THREE.Mesh(new THREE.SphereGeometry(0.035, 16, 16), glowMaterial);
-    rightFingerTip.position.set(0.26, 0, 0);
+    const rightFingerTip = new THREE.Mesh(new THREE.SphereGeometry(0.032, 16, 16), glowMaterial);
+    rightFingerTip.position.set(0.24, 0, 0);
     rightHandGroup.add(rightFingerTip);
+
+    // Natural Thumb
+    const rightThumb = new THREE.Mesh(thumbGeo, jointMaterial);
+    rightThumb.position.set(0.02, 0.03, 0.03);
+    rightHandGroup.add(rightThumb);
 
     // --- 6. Smooth Animation Loop ---
     let reqId: number;
@@ -431,19 +531,30 @@ export function Robot3DCanvas({
       const t = clock.getElapsedTime();
       const { mood: curMood, isSpeaking: curSpeaking, isPointing: curPointing, pointingDirection: curDir } = stateRef.current;
 
-      // Update face texture
-      drawFace(curMood, curSpeaking, t);
+      // Update face texture with pupil tracking & visemes
+      drawFace(curMood, curSpeaking, t, curDir, curPointing);
 
-      // 1. Idle Floating & Hover Physics
-      robotRoot.position.y = Math.sin(t * 2.6) * 0.1;
-      robotRoot.rotation.z = Math.sin(t * 1.5) * 0.04;
+      // 1. Organic Floating & Hover Physics (Harmonic waves)
+      const hoverY = Math.sin(t * 1.9) * 0.07 + Math.sin(t * 3.7) * 0.025 + (curSpeaking ? Math.sin(t * 5.5) * 0.02 : 0);
+      robotRoot.position.y = hoverY;
+      const hoverRoll = Math.sin(t * 1.4) * 0.03 + (curSpeaking ? Math.sin(t * 3.2) * 0.025 : 0);
+      robotRoot.rotation.z = hoverRoll;
 
-      // 2. Hover thruster pulse & light
-      const pulseScale = 1 + Math.sin(t * 8) * 0.1;
-      thrusterRing.scale.set(pulseScale, pulseScale, pulseScale);
-      thrusterLight.intensity = 2.0 + Math.sin(t * 8) * 0.8;
+      // 2. Torso subtle breathing expansion
+      const breathe = 1 + Math.sin(t * 2.2) * 0.018;
+      torsoMesh.scale.set(0.85 * breathe, 1.1 * breathe, 0.85 * breathe);
 
-      // 3. Antenna tip color
+      // 3. Hover Thruster Flare & Ambient Luminescence
+      const thrusterPulse = 1 + Math.sin(t * 10) * 0.12 + Math.cos(t * 16) * 0.05;
+      thrusterRing.scale.set(thrusterPulse, thrusterPulse, thrusterPulse);
+      thrusterLight.intensity = 2.2 + Math.sin(t * 12) * 0.9;
+
+      // 4. Antenna Spring Dynamics (Responds to head motion and speech energy)
+      const antennaWobbleZ = Math.sin(t * 7.5) * (curSpeaking ? 0.12 : 0.035);
+      const antennaWobbleX = Math.cos(t * 6.5) * (curSpeaking ? 0.09 : 0.025);
+      antennaStem.rotation.z = THREE.MathUtils.lerp(antennaStem.rotation.z, antennaWobbleZ, 0.15);
+      antennaStem.rotation.x = THREE.MathUtils.lerp(antennaStem.rotation.x, antennaWobbleX, 0.15);
+
       if (curMood === 'alert') {
         antennaTip.material = new THREE.MeshBasicMaterial({ color: 0xef4444 });
       } else if (curMood === 'celebrate') {
@@ -452,98 +563,118 @@ export function Robot3DCanvas({
         antennaTip.material = glowMaterial;
       }
 
-      // 4. Dynamic Teacher Arm & Hand Gestures 👉 👈
+      // 5. Dynamic Articulated Teacher Gestures (Shoulders + Elbows + Wrists)
       if (curPointing) {
         if (curDir === 'left') {
-          // Point LEFT towards the content on the left side
-          const pointGesture = curSpeaking ? Math.sin(t * 5.0) * 0.12 : 0;
-          const wristPulse = curSpeaking ? Math.sin(t * 6.5) * 0.2 : 0;
+          // --- POINTING LEFT (towards lesson content) ---
+          const speechPulse = curSpeaking ? Math.sin(t * 5.2) * 0.14 : 0;
+          const wristPulse = curSpeaking ? Math.sin(t * 7.0) * 0.22 : 0;
 
-          // Left pointing arm articulates and pulses towards the target
-          leftArmGroup.rotation.x = THREE.MathUtils.lerp(leftArmGroup.rotation.x, -0.65 + pointGesture, 0.14);
-          leftArmGroup.rotation.z = THREE.MathUtils.lerp(leftArmGroup.rotation.z, -0.85 + pointGesture * 0.35, 0.14);
-          leftArmGroup.rotation.y = THREE.MathUtils.lerp(leftArmGroup.rotation.y, -0.4, 0.14);
-          leftHandGroup.rotation.z = THREE.MathUtils.lerp(leftHandGroup.rotation.z, wristPulse, 0.15);
-          leftHandGroup.rotation.x = THREE.MathUtils.lerp(leftHandGroup.rotation.x, pointGesture * 0.8, 0.15);
+          // Left Shoulder raises and extends forward
+          leftArmGroup.rotation.x = THREE.MathUtils.lerp(leftArmGroup.rotation.x, -0.45 + speechPulse * 0.5, 0.14);
+          leftArmGroup.rotation.z = THREE.MathUtils.lerp(leftArmGroup.rotation.z, -0.65 + speechPulse * 0.3, 0.14);
+          leftArmGroup.rotation.y = THREE.MathUtils.lerp(leftArmGroup.rotation.y, -0.25, 0.14);
 
-          // Right arm: gestures expressively like a human teacher explaining
-          const freeLift = curSpeaking ? -0.42 + Math.sin(t * 4.2) * 0.2 : 0;
-          const freeSway = curSpeaking ? 0.35 + Math.cos(t * 3.6) * 0.18 : 0.15;
-          rightArmGroup.rotation.x = THREE.MathUtils.lerp(rightArmGroup.rotation.x, freeLift, 0.12);
-          rightArmGroup.rotation.z = THREE.MathUtils.lerp(rightArmGroup.rotation.z, freeSway, 0.12);
-          rightArmGroup.rotation.y = THREE.MathUtils.lerp(rightArmGroup.rotation.y, curSpeaking ? 0.35 : 0, 0.12);
-          rightHandGroup.rotation.y = THREE.MathUtils.lerp(rightHandGroup.rotation.y, curSpeaking ? Math.sin(t * 5.0) * 0.35 : 0, 0.15);
+          // Left Elbow bends forward to guide index finger at content
+          leftElbowGroup.rotation.x = THREE.MathUtils.lerp(leftElbowGroup.rotation.x, -0.45 + speechPulse * 0.8, 0.16);
+          leftElbowGroup.rotation.z = THREE.MathUtils.lerp(leftElbowGroup.rotation.z, -0.25, 0.16);
 
-          // Head tilts and turns towards left
+          // Left Hand & Wrist keeps pointing finger laser-focused
+          leftHandGroup.rotation.z = THREE.MathUtils.lerp(leftHandGroup.rotation.z, wristPulse, 0.18);
+          leftHandGroup.rotation.x = THREE.MathUtils.lerp(leftHandGroup.rotation.x, speechPulse * 0.6, 0.18);
+
+          // Right Arm (Free arm gestures like an active human teacher!)
+          const rightSway = curSpeaking ? Math.sin(t * 4.0) * 0.22 : 0;
+          const rightLift = curSpeaking ? -0.35 + Math.cos(t * 3.5) * 0.18 : 0;
+          rightArmGroup.rotation.x = THREE.MathUtils.lerp(rightArmGroup.rotation.x, rightLift, 0.12);
+          rightArmGroup.rotation.z = THREE.MathUtils.lerp(rightArmGroup.rotation.z, 0.35 + rightSway, 0.12);
+          rightArmGroup.rotation.y = THREE.MathUtils.lerp(rightArmGroup.rotation.y, curSpeaking ? 0.3 : 0, 0.12);
+
+          // Right Elbow flexes naturally in teaching gesture
+          rightElbowGroup.rotation.x = THREE.MathUtils.lerp(rightElbowGroup.rotation.x, curSpeaking ? -0.65 + Math.sin(t * 4.5) * 0.2 : -0.15, 0.14);
+          rightHandGroup.rotation.y = THREE.MathUtils.lerp(rightHandGroup.rotation.y, curSpeaking ? Math.sin(t * 5.0) * 0.4 : 0, 0.16);
+
+          // Head turns and tilts towards left
           headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, -0.42 + (curSpeaking ? Math.sin(t * 2.5) * 0.08 : 0), 0.12);
           headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, curSpeaking ? Math.sin(t * 6.5) * 0.08 : 0, 0.15);
           robotRoot.rotation.y = THREE.MathUtils.lerp(robotRoot.rotation.y, -0.25, 0.12);
 
-          const fingerGlow = 1 + (curSpeaking ? Math.sin(t * 14) * 0.35 : Math.sin(t * 8) * 0.15);
+          const fingerGlow = 1 + (curSpeaking ? Math.sin(t * 14) * 0.4 : Math.sin(t * 8) * 0.15);
           leftFingerTip.scale.set(fingerGlow, fingerGlow, fingerGlow);
         } else {
-          // Point RIGHT towards the editor on the right side
-          const pointGesture = curSpeaking ? Math.sin(t * 5.0) * 0.12 : 0;
-          const wristPulse = curSpeaking ? -Math.sin(t * 6.5) * 0.2 : 0;
+          // --- POINTING RIGHT (towards code editor / error line) ---
+          const speechPulse = curSpeaking ? Math.sin(t * 5.2) * 0.14 : 0;
+          const wristPulse = curSpeaking ? -Math.sin(t * 7.0) * 0.22 : 0;
 
-          // Right pointing arm articulates and pulses towards the editor
-          rightArmGroup.rotation.x = THREE.MathUtils.lerp(rightArmGroup.rotation.x, -0.65 + pointGesture, 0.14);
-          rightArmGroup.rotation.z = THREE.MathUtils.lerp(rightArmGroup.rotation.z, 0.85 - pointGesture * 0.35, 0.14);
-          rightArmGroup.rotation.y = THREE.MathUtils.lerp(rightArmGroup.rotation.y, 0.4, 0.14);
-          rightHandGroup.rotation.z = THREE.MathUtils.lerp(rightHandGroup.rotation.z, wristPulse, 0.15);
-          rightHandGroup.rotation.x = THREE.MathUtils.lerp(rightHandGroup.rotation.x, pointGesture * 0.8, 0.15);
+          // Right Shoulder raises and extends forward
+          rightArmGroup.rotation.x = THREE.MathUtils.lerp(rightArmGroup.rotation.x, -0.45 + speechPulse * 0.5, 0.14);
+          rightArmGroup.rotation.z = THREE.MathUtils.lerp(rightArmGroup.rotation.z, 0.65 - speechPulse * 0.3, 0.14);
+          rightArmGroup.rotation.y = THREE.MathUtils.lerp(rightArmGroup.rotation.y, 0.25, 0.14);
 
-          // Left arm: gestures expressively like a human teacher explaining
-          const freeLift = curSpeaking ? -0.42 + Math.sin(t * 4.2) * 0.2 : 0;
-          const freeSway = curSpeaking ? -0.35 - Math.cos(t * 3.6) * 0.18 : -0.15;
-          leftArmGroup.rotation.x = THREE.MathUtils.lerp(leftArmGroup.rotation.x, freeLift, 0.12);
-          leftArmGroup.rotation.z = THREE.MathUtils.lerp(leftArmGroup.rotation.z, freeSway, 0.12);
-          leftArmGroup.rotation.y = THREE.MathUtils.lerp(leftArmGroup.rotation.y, curSpeaking ? -0.35 : 0, 0.12);
-          leftHandGroup.rotation.y = THREE.MathUtils.lerp(leftHandGroup.rotation.y, curSpeaking ? -Math.sin(t * 5.0) * 0.35 : 0, 0.15);
+          // Right Elbow bends forward to guide index finger at editor
+          rightElbowGroup.rotation.x = THREE.MathUtils.lerp(rightElbowGroup.rotation.x, -0.45 + speechPulse * 0.8, 0.16);
+          rightElbowGroup.rotation.z = THREE.MathUtils.lerp(rightElbowGroup.rotation.z, 0.25, 0.16);
 
-          // Head tilts and turns towards right
+          // Right Hand & Wrist
+          rightHandGroup.rotation.z = THREE.MathUtils.lerp(rightHandGroup.rotation.z, wristPulse, 0.18);
+          rightHandGroup.rotation.x = THREE.MathUtils.lerp(rightHandGroup.rotation.x, speechPulse * 0.6, 0.18);
+
+          // Left Arm (Free arm gestures like an active human teacher!)
+          const leftSway = curSpeaking ? Math.sin(t * 4.0) * 0.22 : 0;
+          const leftLift = curSpeaking ? -0.35 + Math.cos(t * 3.5) * 0.18 : 0;
+          leftArmGroup.rotation.x = THREE.MathUtils.lerp(leftArmGroup.rotation.x, leftLift, 0.12);
+          leftArmGroup.rotation.z = THREE.MathUtils.lerp(leftArmGroup.rotation.z, -0.35 - leftSway, 0.12);
+          leftArmGroup.rotation.y = THREE.MathUtils.lerp(leftArmGroup.rotation.y, curSpeaking ? -0.3 : 0, 0.12);
+
+          // Left Elbow flexes naturally
+          leftElbowGroup.rotation.x = THREE.MathUtils.lerp(leftElbowGroup.rotation.x, curSpeaking ? -0.65 + Math.sin(t * 4.5) * 0.2 : -0.15, 0.14);
+          leftHandGroup.rotation.y = THREE.MathUtils.lerp(leftHandGroup.rotation.y, curSpeaking ? -Math.sin(t * 5.0) * 0.4 : 0, 0.16);
+
+          // Head turns and tilts towards right
           headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, 0.42 - (curSpeaking ? Math.sin(t * 2.5) * 0.08 : 0), 0.12);
           headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, curSpeaking ? Math.sin(t * 6.5) * 0.08 : 0, 0.15);
           robotRoot.rotation.y = THREE.MathUtils.lerp(robotRoot.rotation.y, 0.25, 0.12);
 
-          const fingerGlow = 1 + (curSpeaking ? Math.sin(t * 14) * 0.35 : Math.sin(t * 8) * 0.15);
+          const fingerGlow = 1 + (curSpeaking ? Math.sin(t * 14) * 0.4 : Math.sin(t * 8) * 0.15);
           rightFingerTip.scale.set(fingerGlow, fingerGlow, fingerGlow);
         }
       } else if (curSpeaking) {
-        // Teacher Explaining with Both Hands (Natural lecturer gesticulation)
-        const leftLift = -0.42 + Math.sin(t * 4.5) * 0.2;
-        const leftSpread = -0.32 + Math.cos(t * 3.2) * 0.15;
-        leftArmGroup.rotation.x = THREE.MathUtils.lerp(leftArmGroup.rotation.x, leftLift, 0.12);
-        leftArmGroup.rotation.z = THREE.MathUtils.lerp(leftArmGroup.rotation.z, leftSpread, 0.12);
-        leftArmGroup.rotation.y = THREE.MathUtils.lerp(leftArmGroup.rotation.y, -0.25, 0.12);
-        leftHandGroup.rotation.x = THREE.MathUtils.lerp(leftHandGroup.rotation.x, Math.sin(t * 5.5) * 0.25, 0.14);
+        // --- TEACHER GESTICULATING WITH BOTH HANDS (Articulated Forearms & Palms) ---
+        // Left arm and elbow
+        leftArmGroup.rotation.x = THREE.MathUtils.lerp(leftArmGroup.rotation.x, -0.28 + Math.sin(t * 3.8) * 0.15, 0.12);
+        leftArmGroup.rotation.z = THREE.MathUtils.lerp(leftArmGroup.rotation.z, -0.32 + Math.cos(t * 3.0) * 0.12, 0.12);
+        leftArmGroup.rotation.y = THREE.MathUtils.lerp(leftArmGroup.rotation.y, -0.2, 0.12);
+        leftElbowGroup.rotation.x = THREE.MathUtils.lerp(leftElbowGroup.rotation.x, -0.65 + Math.sin(t * 4.5) * 0.25, 0.14);
+        leftHandGroup.rotation.x = THREE.MathUtils.lerp(leftHandGroup.rotation.x, Math.sin(t * 5.5) * 0.3, 0.16);
 
-        const rightLift = -0.42 + Math.cos(t * 4.2) * 0.2;
-        const rightSpread = 0.32 - Math.sin(t * 3.2) * 0.15;
-        rightArmGroup.rotation.x = THREE.MathUtils.lerp(rightArmGroup.rotation.x, rightLift, 0.12);
-        rightArmGroup.rotation.z = THREE.MathUtils.lerp(rightArmGroup.rotation.z, rightSpread, 0.12);
-        rightArmGroup.rotation.y = THREE.MathUtils.lerp(rightArmGroup.rotation.y, 0.25, 0.12);
-        rightHandGroup.rotation.x = THREE.MathUtils.lerp(rightHandGroup.rotation.x, Math.cos(t * 5.5) * 0.25, 0.14);
+        // Right arm and elbow
+        rightArmGroup.rotation.x = THREE.MathUtils.lerp(rightArmGroup.rotation.x, -0.28 + Math.cos(t * 3.8) * 0.15, 0.12);
+        rightArmGroup.rotation.z = THREE.MathUtils.lerp(rightArmGroup.rotation.z, 0.32 - Math.sin(t * 3.0) * 0.12, 0.12);
+        rightArmGroup.rotation.y = THREE.MathUtils.lerp(rightArmGroup.rotation.y, 0.2, 0.12);
+        rightElbowGroup.rotation.x = THREE.MathUtils.lerp(rightElbowGroup.rotation.x, -0.65 + Math.cos(t * 4.5) * 0.25, 0.14);
+        rightHandGroup.rotation.x = THREE.MathUtils.lerp(rightHandGroup.rotation.x, Math.cos(t * 5.5) * 0.3, 0.16);
 
         // Head nods and moves in conversation
-        headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, Math.sin(t * 6.5) * 0.08, 0.14);
-        headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, Math.sin(t * 2.0) * 0.15, 0.1);
+        headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, Math.sin(t * 6.5) * 0.09, 0.14);
+        headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, Math.sin(t * 2.0) * 0.16, 0.1);
         headGroup.rotation.z = THREE.MathUtils.lerp(headGroup.rotation.z, Math.sin(t * 2.8) * 0.05, 0.1);
         robotRoot.rotation.y = THREE.MathUtils.lerp(robotRoot.rotation.y, 0, 0.08);
       } else {
-        // Natural resting posture
+        // --- NATURAL RESTING POSTURE (Gentle Breathing & Hovering) ---
         leftArmGroup.rotation.x = THREE.MathUtils.lerp(leftArmGroup.rotation.x, 0, 0.08);
-        leftArmGroup.rotation.z = THREE.MathUtils.lerp(leftArmGroup.rotation.z, -0.15 + Math.sin(t * 2) * 0.04, 0.08);
+        leftArmGroup.rotation.z = THREE.MathUtils.lerp(leftArmGroup.rotation.z, -0.15 + Math.sin(t * 2) * 0.03, 0.08);
         leftArmGroup.rotation.y = THREE.MathUtils.lerp(leftArmGroup.rotation.y, 0, 0.08);
+        leftElbowGroup.rotation.set(0, 0, 0);
         leftHandGroup.rotation.set(0, 0, 0);
 
         rightArmGroup.rotation.x = THREE.MathUtils.lerp(rightArmGroup.rotation.x, 0, 0.08);
-        rightArmGroup.rotation.z = THREE.MathUtils.lerp(rightArmGroup.rotation.z, 0.15 - Math.sin(t * 2) * 0.04, 0.08);
+        rightArmGroup.rotation.z = THREE.MathUtils.lerp(rightArmGroup.rotation.z, 0.15 - Math.sin(t * 2) * 0.03, 0.08);
         rightArmGroup.rotation.y = THREE.MathUtils.lerp(rightArmGroup.rotation.y, 0, 0.08);
+        rightElbowGroup.rotation.set(0, 0, 0);
         rightHandGroup.rotation.set(0, 0, 0);
 
         headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, 0, 0.08);
-        headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, Math.sin(t * 1.2) * 0.12, 0.08);
+        headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, Math.sin(t * 1.2) * 0.10, 0.08);
         headGroup.rotation.z = THREE.MathUtils.lerp(headGroup.rotation.z, 0, 0.08);
         robotRoot.rotation.y = THREE.MathUtils.lerp(robotRoot.rotation.y, 0, 0.08);
       }

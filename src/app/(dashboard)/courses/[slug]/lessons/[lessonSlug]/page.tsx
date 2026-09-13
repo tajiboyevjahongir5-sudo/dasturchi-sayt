@@ -28,6 +28,7 @@ import { ErrorExplanationPanel } from '@/components/editor/ErrorExplanationPanel
 import { HintPanel } from '@/components/editor/HintPanel';
 import { QuizCard } from '@/components/quiz/QuizCard';
 import { MentorPanel } from '@/components/mentor/MentorPanel';
+import { RobotCompanion } from '@/components/companion/RobotCompanion';
 import { executeCode, executeMultiFileProject } from '@/lib/code-runner/runner';
 import { explainError } from '@/lib/error-explainer';
 import { useToast } from '@/components/providers/ToastProvider';
@@ -688,6 +689,17 @@ export default function LessonPage({
           hints: exercise?.hints || [],
           hintsUsedCount,
         }}
+      />
+
+      {/* Robo-Ustoz: Natural Human Uzbek Speech & Interactive Floating Companion */}
+      <RobotCompanion
+        lessonTitle={lesson.title}
+        lessonObjective={content.learningObjective}
+        lastError={codeErrors.length > 0 ? codeErrors[0] : null}
+        userCode={userCode}
+        isPassed={isPassed}
+        hints={exercise?.hints || []}
+        hintsUsedCount={hintsUsedCount}
       />
     </div>
   );

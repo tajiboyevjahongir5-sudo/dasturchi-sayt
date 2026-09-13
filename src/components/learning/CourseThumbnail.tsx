@@ -15,18 +15,18 @@ interface CourseThumbnailProps {
 export function getCourseFallbackSvg(slug?: string, title?: string): string {
   const text = `${slug || ''} ${title || ''}`.toLowerCase();
   if (text.includes('intermediate') || text.includes('o‘rta') || text.includes('orta')) {
-    return '/images/courses/js-intermediate.svg';
+    return '/images/courses/js.jpg';
   }
   if (text.includes('html')) {
-    return '/images/courses/html.svg';
+    return '/images/courses/html.jpg';
   }
   if (text.includes('css')) {
-    return '/images/courses/css.svg';
+    return '/images/courses/css.jpg';
   }
   if (text.includes('javascript') || text.includes('js')) {
-    return '/images/courses/js.svg';
+    return '/images/courses/js.jpg';
   }
-  return '/images/courses/intro.svg';
+  return '/images/courses/intro.jpg';
 }
 
 export function CourseThumbnail({
@@ -38,23 +38,29 @@ export function CourseThumbnail({
   priority = false,
 }: CourseThumbnailProps) {
   const fallbackSvg = getCourseFallbackSvg(slug, title);
+  
+  // Normalize legacy .svg course thumbnails to new high-definition 3D banners (.jpg)
+  const mappedThumbnail = typeof thumbnail === 'string'
+    ? thumbnail.replace(/\.svg$/, '.jpg')
+    : thumbnail;
+
   const isUrl =
-    typeof thumbnail === 'string' &&
-    (thumbnail.startsWith('/') ||
-      thumbnail.startsWith('http://') ||
-      thumbnail.startsWith('https://'));
+    typeof mappedThumbnail === 'string' &&
+    (mappedThumbnail.startsWith('/') ||
+      mappedThumbnail.startsWith('http://') ||
+      mappedThumbnail.startsWith('https://'));
 
   const [hasError, setHasError] = useState(false);
-  const [prevThumbnail, setPrevThumbnail] = useState(thumbnail);
+  const [prevThumbnail, setPrevThumbnail] = useState(mappedThumbnail);
 
-  if (prevThumbnail !== thumbnail) {
-    setPrevThumbnail(thumbnail);
+  if (prevThumbnail !== mappedThumbnail) {
+    setPrevThumbnail(mappedThumbnail);
     setHasError(false);
   }
 
   // If thumbnail is an emoji (e.g. 🚀, ⚡, 📘)
-  const isEmoji = !isUrl && thumbnail && thumbnail.trim().length <= 4;
-  const srcToUse = hasError || !isUrl ? fallbackSvg : thumbnail;
+  const isEmoji = !isUrl && mappedThumbnail && mappedThumbnail.trim().length <= 4;
+  const srcToUse = hasError || !isUrl ? fallbackSvg : mappedThumbnail;
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-slate-950">

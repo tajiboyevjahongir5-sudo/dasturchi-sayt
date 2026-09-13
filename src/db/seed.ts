@@ -39,6 +39,14 @@ export async function runSeed() {
         createdAt: course.createdAt,
         updatedAt: course.updatedAt,
       }).run();
+    } else {
+      db.update(schema.courses)
+        .set({
+          thumbnail: course.thumbnail,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(schema.courses.id, course.id))
+        .run();
     }
   }
   console.log('✅ Kurslar yuklandi.');

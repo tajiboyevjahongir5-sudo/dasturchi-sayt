@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
+import { Button } from '../ui/button';
 
 export function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname();
@@ -102,6 +103,20 @@ export function Sidebar({ className }: { className?: string }) {
               className="h-1.5"
             />
           </div>
+        </div>
+      )}
+
+      {/* Guest Login CTA Mini Card */}
+      {!user && (
+        <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 space-y-2.5 text-center">
+          <p className="text-xs text-muted-foreground">
+            Barcha imkoniyatlar uchun hisobingizga kiring
+          </p>
+          <Link href="/login" className="block">
+            <Button variant="gradient" size="sm" className="w-full text-xs font-bold shadow-xs">
+              Kirish
+            </Button>
+          </Link>
         </div>
       )}
     </aside>

@@ -12,7 +12,13 @@ import {
   Clock, 
   ArrowRight, 
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  LogIn,
+  UserPlus,
+  RotateCcw,
+  Code2,
+  Award,
+  Bot
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -75,25 +81,62 @@ interface DashboardData {
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    let ignore = false;
+
     async function loadStats() {
       try {
         const res = await fetch('/api/user/stats');
+        if (ignore) return;
+        if (res.status === 401) {
+          setIsUnauthorized(true);
+          setData(null);
+          return;
+        }
         if (res.ok) {
           const json = await res.json();
-          if (json.success) {
-            setData(json.data);
+          if (!ignore) {
+            if (json.success) {
+              setData(json.data);
+              setIsUnauthorized(false);
+              setError(null);
+            } else {
+              setError(json.error || 'Statistikalarni yuklab bo‘lmadi');
+            }
+          }
+        } else {
+          if (!ignore) {
+            setError('Server bilan bog‘lanishda xatolik yuz berdi');
           }
         }
       } catch (err) {
         console.error('Stats load error:', err);
+        if (!ignore) {
+          setError('Internet aloqasi yoki tarmoq xatosi');
+        }
       } finally {
-        setLoading(false);
+        if (!ignore) {
+          setLoading(false);
+        }
       }
     }
+
     loadStats();
-  }, []);
+
+    return () => {
+      ignore = true;
+    };
+  }, [retryCount]);
+
+  const handleRetry = () => {
+    setLoading(true);
+    setError(null);
+    setRetryCount((c) => c + 1);
+  };
 
   if (loading) {
     return (
@@ -110,7 +153,162 @@ export default function DashboardPage() {
     );
   }
 
-  if (!data) return null;
+  // Error state for logged in users
+  if (error && !data) {
+    return (
+      <div className="space-y-6 max-w-md mx-auto my-16 text-center">
+        <Card className="p-8 border-destructive/20 bg-destructive/5 space-y-4">
+          <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
+          <h2 className="text-xl font-bold">Ma’lumotlarni yuklab bo‘lmadi</h2>
+          <p className="text-sm text-muted-foreground">{error}</p>
+          <Button onClick={handleRetry} variant="outline" className="gap-2 mx-auto">
+            <RotateCcw className="w-4 h-4" />
+            <span>Qayta urinish</span>
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  // Guest / unauthenticated fallback view
+  if (isUnauthorized || !data) {
+    return (
+      <div className="space-y-8 pb-12">
+        {/* Guest Welcome Banner */}
+        <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card p-6 sm:p-10 shadow-lg">
+          <div className="max-w-2xl space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/15 border border-primary/30 text-primary text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Mehmon rejimi — CodeQuest Akademiyasi</span>
+            </div>
+            <h1 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight">
+              Dasturlash olamiga xush kelibsiz! 🚀
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+              Shaxsiy ta’lim natijalaringiz, XP ballaringiz va darslar progressini kuzatish uchun profilingizga kiring yoki bepul yangi hisob oching.
+            </p>
+            <div className="flex flex-wrap gap-3 pt-2">
+              <Link href="/login?callbackUrl=/dashboard">
+                <Button variant="gradient" size="lg" className="font-bold gap-2 shadow-md">
+                  <LogIn className="w-4 h-4" />
+                  <span>Tizimga kirish</span>
+                </Button>
+              </Link>
+              <Link href="/register">
+                <Button variant="outline" size="lg" className="font-bold gap-2 border-border/80">
+                  <UserPlus className="w-4 h-4" />
+                  <span>Ro‘yxatdan o‘tish</span>
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Highlighted Core Courses */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight">O‘rganishni boshlash uchun kurslar</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground">0 dan boshlovchilar uchun maxsus tuzilgan amaliy dasturlar</p>
+            </div>
+            <Link href="/courses">
+              <Button variant="ghost" size="sm" className="gap-1 text-xs">
+                <span>Barchasi</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Card className="p-5 flex flex-col justify-between space-y-4 hover:border-primary/50 transition-all">
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 font-bold">
+                  <Code2 className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base">Dasturlashga Kirish</h3>
+                <p className="text-xs text-muted-foreground">
+                  Algoritmlar, kompyuter qanday fikrlashi va birinchi dasturlash asoslari.
+                </p>
+              </div>
+              <Link href="/courses/dasturlashga-kirish">
+                <Button variant="outline" size="sm" className="w-full gap-1.5 font-semibold">
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>Darsni boshlash</span>
+                </Button>
+              </Link>
+            </Card>
+
+            <Card className="p-5 flex flex-col justify-between space-y-4 hover:border-primary/50 transition-all">
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 font-bold">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base">HTML Asoslari</h3>
+                <p className="text-xs text-muted-foreground">
+                  Veb sahifalar skeleti, teglarning ishlashi va semantik struktura.
+                </p>
+              </div>
+              <Link href="/courses/html-asoslari">
+                <Button variant="outline" size="sm" className="w-full gap-1.5 font-semibold">
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>Darsni boshlash</span>
+                </Button>
+              </Link>
+            </Card>
+
+            <Card className="p-5 flex flex-col justify-between space-y-4 hover:border-primary/50 transition-all">
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 font-bold">
+                  <Bot className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base">3D Ustoz Sardor</h3>
+                <p className="text-xs text-muted-foreground">
+                  Sardor bilan har bir mavzuni ovozli, imo-ishorali va jonli ravishda o‘rganing.
+                </p>
+              </div>
+              <Link href="/courses">
+                <Button variant="outline" size="sm" className="w-full gap-1.5 font-semibold">
+                  <span>Kurslar bilan tanishish</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Button>
+              </Link>
+            </Card>
+          </div>
+        </div>
+
+        {/* Feature Banner */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+          <div className="p-4 rounded-xl border border-border/60 bg-card/50 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-blue-500/15 flex items-center justify-center text-blue-500 shrink-0">
+              <Flame className="w-5 h-5 fill-blue-500" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Kunlik Streak & XP</p>
+              <p className="text-xs text-muted-foreground">Har kuni o‘rganing va reytingingizni oshiring</p>
+            </div>
+          </div>
+          <div className="p-4 rounded-xl border border-border/60 bg-card/50 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-500 shrink-0">
+              <Code2 className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Brauzerda Kodlash</p>
+              <p className="text-xs text-muted-foreground">Hech narsa o‘rnatmasdan jonli kod yozing</p>
+            </div>
+          </div>
+          <div className="p-4 rounded-xl border border-border/60 bg-card/50 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-amber-500/15 flex items-center justify-center text-amber-500 shrink-0">
+              <Award className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Maxsus Medallar</p>
+              <p className="text-xs text-muted-foreground">Har bir yutuq uchun sertifikat va unvonlar</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const { user, stats, achievements } = data;
   const activeCourse = stats.activeCourse;

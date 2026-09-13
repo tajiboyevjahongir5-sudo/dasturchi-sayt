@@ -14,8 +14,6 @@ const SESSION_COOKIE_NAME = 'codequest_session';
 
 const PROTECTED_PREFIXES = [
   '/dashboard',
-  '/courses',
-  '/learning-path',
   '/profile',
   '/progress',
   '/achievements',
@@ -54,7 +52,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix + '/'));
   const isAuthPage = pathname === '/login' || pathname === '/register';
 
   // 2. If accessing protected page without valid token -> redirect to /login
@@ -78,14 +76,19 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/admin',
     '/admin/:path*',
+    '/dashboard',
     '/dashboard/:path*',
-    '/courses/:path*',
-    '/learning-path/:path*',
+    '/profile',
     '/profile/:path*',
+    '/progress',
     '/progress/:path*',
+    '/achievements',
     '/achievements/:path*',
+    '/onboarding',
     '/onboarding/:path*',
+    '/workspace',
     '/workspace/:path*',
     '/login',
     '/register',

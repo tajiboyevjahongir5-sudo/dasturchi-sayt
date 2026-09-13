@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { 
@@ -10,17 +11,58 @@ import {
   Zap, 
   LogOut, 
   Sun, 
-  Moon 
+  Moon,
+  LogIn,
+  UserPlus,
+  User as UserIcon
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
-  if (!user) return null;
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto">
+        <Skeleton className="h-10 w-48 rounded-xl" />
+        <Skeleton className="h-64 rounded-2xl" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="space-y-8 pb-16 max-w-xl mx-auto my-12">
+        <Card className="p-8 text-center space-y-4 border-primary/20 bg-card/60">
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mx-auto">
+            <UserIcon className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-bold">Profilingizga kiring</h2>
+          <p className="text-sm text-muted-foreground">
+            Shaxsiy ma’lumotlaringiz, yutuqlaringiz va sozlamalarni ko‘rish uchun tizimga kiring yoki ro‘yxatdan o‘ting.
+          </p>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <Link href="/login?callbackUrl=/profile">
+              <Button variant="gradient" className="font-bold gap-2">
+                <LogIn className="w-4 h-4" />
+                <span>Tizimga kirish</span>
+              </Button>
+            </Link>
+            <Link href="/register">
+              <Button variant="outline" className="font-semibold gap-2">
+                <UserPlus className="w-4 h-4" />
+                <span>Ro‘yxatdan o‘tish</span>
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-16 max-w-4xl mx-auto">

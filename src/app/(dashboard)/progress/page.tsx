@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { 
   BarChart3, 
   Clock, 
-  ArrowRight
+  ArrowRight,
+  LogIn
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -78,7 +79,34 @@ export default function ProgressPage() {
     );
   }
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <div className="space-y-8 pb-16 max-w-xl mx-auto my-12">
+        <Card className="p-8 text-center space-y-4 border-primary/20 bg-card/60">
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mx-auto">
+            <BarChart3 className="w-7 h-7" />
+          </div>
+          <h2 className="text-2xl font-bold">O‘quv statistikasini ko‘rish</h2>
+          <p className="text-sm text-muted-foreground">
+            Shaxsiy o‘zlashtirish ko‘rsatkichlaringiz, sarflangan vaqt va darajalaringizni ko‘rish uchun profilingizga kiring.
+          </p>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <Link href="/login?callbackUrl=/progress">
+              <Button variant="gradient" className="font-bold gap-2">
+                <LogIn className="w-4 h-4" />
+                <span>Tizimga kirish</span>
+              </Button>
+            </Link>
+            <Link href="/courses">
+              <Button variant="outline" className="font-semibold">
+                <span>Kurslarni ko‘rish</span>
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   const { user, stats } = data;
 

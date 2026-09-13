@@ -24,7 +24,6 @@ import { MultiFileEditor, ProjectFileName } from '@/components/editor/MultiFileE
 import { MultiFilePreview, ConsoleEntry } from '@/components/editor/MultiFilePreview';
 import { ConsoleOutput } from '@/components/editor/ConsoleOutput';
 import { ErrorExplanationPanel } from '@/components/editor/ErrorExplanationPanel';
-import { RobotCompanion } from '@/components/companion/RobotCompanion';
 import { explainError } from '@/lib/error-explainer';
 import { useToast } from '@/components/providers/ToastProvider';
 import type { UserProject, ErrorExplanation, CodeError } from '@/types';
@@ -839,14 +838,6 @@ export default function WorkspacePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Robo-Ustoz: Natural Human Uzbek Speech & Interactive Floating Companion */}
-      <RobotCompanion
-        lessonTitle={currentProject ? currentProject.title : 'Web Workspace Loyihasi'}
-        lessonObjective="HTML, CSS va JavaScript yordamida interaktiv veb ilova yaratish"
-        lastError={codeErrors.length > 0 ? codeErrors[0] : null}
-        userCode={files['script.js']}
-      />
     </div>
   );
 }

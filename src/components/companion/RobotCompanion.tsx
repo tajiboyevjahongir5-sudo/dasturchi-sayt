@@ -44,6 +44,7 @@ export interface RobotCompanionProps {
   hints?: string[];
   hintsUsedCount?: number;
   onHighlightLine?: (line: number) => void;
+  autoStartOnMount?: boolean;
 }
 
 export function RobotCompanion({
@@ -56,6 +57,7 @@ export function RobotCompanion({
   hints = [],
   hintsUsedCount = 0,
   onHighlightLine,
+  autoStartOnMount = false,
 }: RobotCompanionProps) {
   // Navigation & Floating position state
   const [position, setPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -493,9 +495,10 @@ export function RobotCompanion({
     };
   }, [startCompleteLecture]);
 
-  // 1. Initial Greeting on mount: Auto-starts teacher lecture after 1.5 seconds!
+  // 1. Initial Greeting on mount: Auto-starts teacher lecture only if autoStartOnMount is explicitly enabled
   const hasGreetedRef = useRef(false);
   useEffect(() => {
+    if (!autoStartOnMount) return;
     if (hasGreetedRef.current) return;
     hasGreetedRef.current = true;
 
@@ -508,7 +511,7 @@ export function RobotCompanion({
       clearTimeout(timer);
       stopSpeaking();
     };
-  }, [startCompleteLecture, stopSpeaking]);
+  }, [autoStartOnMount, startCompleteLecture, stopSpeaking]);
 
   // 2. React immediately when a Code Error occurs: FLY DIRECTLY TO ERROR LINE & POINT 👉
   const prevErrorRef = useRef<string | null>(null);

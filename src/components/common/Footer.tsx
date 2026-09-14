@@ -12,10 +12,22 @@ export function Footer() {
           <p className="max-w-sm text-xs leading-relaxed">
             Dasturlashni 0 dan professional darajagacha o‘zbek tilida o‘rgatuvchi zamonaviy interaktiv ta’lim platformasi. Nazariya, amaliyot va real loyihalar bir joyda.
           </p>
-          <div className="flex items-center gap-2 pt-2 text-xs">
-            <span>O‘zbekistonda</span>
-            <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" />
-            <span>bilan yaratildi</span>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-2 text-xs">
+            <div className="flex items-center gap-1.5">
+              <span>O‘zbekistonda</span>
+              <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" />
+              <span>bilan yaratildi</span>
+            </div>
+            <span className="text-border hidden sm:inline">•</span>
+            <a
+              href="https://t.me/jahongir_1220"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 font-medium text-cyan-400 hover:text-cyan-300 hover:underline transition-colors"
+            >
+              <Send className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Dasturchi: @jahongir_1220</span>
+            </a>
           </div>
         </div>
 
@@ -60,7 +72,18 @@ export function Footer() {
             </li>
             <li>
               <a
-                href="https://t.me/codequest_uz"
+                href="https://t.me/jahongir_1220"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 font-medium text-cyan-400 hover:text-cyan-300 transition-colors"
+              >
+                <Send className="w-3.5 h-3.5 text-cyan-400" />
+                Dasturchi: @jahongir_1220
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://t.me/jahongir_1220"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 hover:text-primary transition-colors"
@@ -71,7 +94,7 @@ export function Footer() {
             </li>
             <li>
               <a
-                href="https://github.com/codequest-uz"
+                href="https://github.com/tajiboyevjahongir5-sudo/dasturchi-sayt"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 hover:text-primary transition-colors"
@@ -85,7 +108,19 @@ export function Footer() {
       </div>
 
       <div className="container mx-auto px-4 mt-8 pt-6 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between text-xs gap-4">
-        <p>© 2026 CodeQuest. Barcha huquqlar himoyalangan.</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p>© 2026 CodeQuest. Barcha huquqlar himoyalangan.</p>
+          <span className="text-border hidden sm:inline">•</span>
+          <a
+            href="https://t.me/jahongir_1220"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-cyan-400 hover:text-cyan-300 transition-colors"
+          >
+            <Send className="w-3 h-3 text-cyan-400" />
+            <span>Dasturchi: @jahongir_1220</span>
+          </a>
+        </div>
         <p className="text-muted-foreground">“Dasturlashni yodlamang — tushuning, yozing va yarating.”</p>
       </div>
     </footer>

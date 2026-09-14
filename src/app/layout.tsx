@@ -4,6 +4,8 @@ import './globals.css';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { AuthProvider } from '@/components/providers/AuthProvider';
 import { ToastProvider } from '@/components/providers/ToastProvider';
+import { CompanionProvider } from '@/components/providers/CompanionProvider';
+import { RobotCompanion } from '@/components/companion/RobotCompanion';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -46,7 +48,10 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <ToastProvider>
-              {children}
+              <CompanionProvider>
+                {children}
+                <RobotCompanion />
+              </CompanionProvider>
             </ToastProvider>
           </AuthProvider>
         </ThemeProvider>

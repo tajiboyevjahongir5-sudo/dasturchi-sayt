@@ -477,3 +477,76 @@ export function getHintSpeech(hintText: string, hintIndex: number): RobotSpeechS
     displayText: display,
   };
 }
+
+/**
+ * Site-wide welcome greeting for visitors across pages
+ */
+export function getSiteWelcomeScript(userName?: string): RobotSpeechScript {
+  const nameGreeting = userName ? `Salom, ${userName}!` : 'Assalomu alaykum!';
+  const speech = `${nameGreeting} CodeQuest dasturlash akademiyasiga xush kelibsiz! Mening ismim Sardor — sizning shaxsiy 3D robo-ustozingizman! Bu yerda siz 0 dan boshlab zamonaviy veb dasturlashni, HTML, CSS va JavaScriptni amaliy kod yozib, qiziqarli o‘rganishingiz mumkin. Kurslarimizdan birini tanlang va birgalikda ajoyib dasturlar yaratamiz!`;
+  const display = `👋 **${nameGreeting} Men Sardor — sizning 3D Robo-Ustozingizman!**\n\nCodeQuest akademiyasiga xush kelibsiz. Bu yerda siz dasturlashni quruq yodlamasdan, brauzerda jonli kod yozib, 0 dan amaliy o‘rganasiz. Darslarda sizga yo‘l-yo‘riq ko‘rsatib boraman! 🚀`;
+
+  return {
+    id: 'site-welcome',
+    mood: 'celebrate',
+    title: 'Salom, Men Sardor Ustozman! 👨‍🏫',
+    speechText: formatTextForSpeech(speech),
+    displayText: display,
+  };
+}
+
+/**
+ * Contextual speech guide for specific pages
+ */
+export function getPageGuideScript(pathname: string, courseTitle?: string): RobotSpeechScript {
+  if (pathname.startsWith('/courses/') && courseTitle) {
+    const speech = `Ajoyib tanlov! ${courseTitle} kursi sizga dasturlashni chuqur va amaliy o‘rgatadi. Kursni boshlash tugmasini bosing — dars boshlanishi bilan sizga mavzuni to‘liq tushuntirib beraman!`;
+    const display = `🎯 **${courseTitle}** kursiga xush kelibsiz!\n\nPastdagi **«Kursni boshlash»** tugmasini bosing, dars ichida birgalikda kod yozamiz!`;
+    return {
+      id: `guide-course-${Date.now()}`,
+      mood: 'talking',
+      title: `${courseTitle} — Boshlashga tayyormisiz? 🚀`,
+      speechText: formatTextForSpeech(speech),
+      displayText: display,
+    };
+  }
+
+  if (pathname === '/courses') {
+    const speech = `Bu yerda barcha asosiy amaliy kurslarimiz jamlangan: Dasturlashga kirish, HTML, CSS va JavaScript. O‘zingizga yoqqan kursni tanlab, boshlang!`;
+    const display = `📚 **Kurslar Katalogi**\n\nBoshlang‘ich dasturlash, veb sahifalar tuzilishi va JavaScript kurslarini ko‘rib chiqing.`;
+    return {
+      id: 'guide-courses',
+      mood: 'talking',
+      title: 'Kurslarni tanlang 📘',
+      speechText: formatTextForSpeech(speech),
+      displayText: display,
+    };
+  }
+
+  if (pathname === '/dashboard') {
+    const speech = `Boshqaruv panelingizga xush kelibsiz! Bu yerda kunlik streakingiz, to‘plangan XP ballaringiz va darslar progressini kuzatib borishingiz mumkin. Bugun kamida bitta darsni bajaring!`;
+    const display = `📊 **Shaxsiy Dashboard**\n\nBugungi o‘quv ko‘rsatkichlaringiz va faolligingizni kuzatib boring! 🔥`;
+    return {
+      id: 'guide-dashboard',
+      mood: 'celebrate',
+      title: 'Bugungi O‘quv Maqsadi 🎯',
+      speechText: formatTextForSpeech(speech),
+      displayText: display,
+    };
+  }
+
+  if (pathname === '/learning-path') {
+    const speech = `Bu sizning ta’lim yo‘l xaritangiz! Dasturlashga kirishdan to professional darajagacha bosqichma-bosqich o‘rganishingiz uchun maxsus tuzilgan.`;
+    const display = `🗺️ **O‘quv Yo‘li (Roadmap)**\n\n0 dan Frontend mutaxassisi darajasigacha bo‘lgan barcha bosqichlar!`;
+    return {
+      id: 'guide-roadmap',
+      mood: 'talking',
+      title: 'Ta’lim Yo‘l Xaritasi 🗺️',
+      speechText: formatTextForSpeech(speech),
+      displayText: display,
+    };
+  }
+
+  return getSiteWelcomeScript();
+}
+

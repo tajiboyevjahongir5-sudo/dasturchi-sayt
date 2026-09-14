@@ -9,6 +9,7 @@ interface Robot3DCanvasProps {
   isSpeaking?: boolean;
   isPointing?: boolean;
   pointingDirection?: 'left' | 'right';
+  isWaving?: boolean;
   size?: number;
   className?: string;
 }
@@ -18,16 +19,17 @@ export function Robot3DCanvas({
   isSpeaking = false,
   isPointing = false,
   pointingDirection = 'left',
+  isWaving = false,
   size = 160,
   className = '',
 }: Robot3DCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
-  const stateRef = useRef({ mood, isSpeaking, isPointing, pointingDirection });
+  const stateRef = useRef({ mood, isSpeaking, isPointing, pointingDirection, isWaving });
 
   // Keep state updated in ref for the animation loop
   useEffect(() => {
-    stateRef.current = { mood, isSpeaking, isPointing, pointingDirection };
-  }, [mood, isSpeaking, isPointing, pointingDirection]);
+    stateRef.current = { mood, isSpeaking, isPointing, pointingDirection, isWaving };
+  }, [mood, isSpeaking, isPointing, pointingDirection, isWaving]);
 
   useEffect(() => {
     const container = mountRef.current;
@@ -96,6 +98,16 @@ export function Robot3DCanvas({
         ctx.lineTo(512, y);
         ctx.stroke();
       }
+
+      // Sleek curved glass reflection sheen across top-left of visor
+      const sheenGrad = ctx.createLinearGradient(60, 20, 260, 180);
+      sheenGrad.addColorStop(0, 'rgba(255, 255, 255, 0.16)');
+      sheenGrad.addColorStop(0.35, 'rgba(255, 255, 255, 0.05)');
+      sheenGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = sheenGrad;
+      ctx.beginPath();
+      ctx.ellipse(180, 65, 150, 50, -Math.PI / 6, 0, Math.PI * 2);
+      ctx.fill();
 
       // Smooth Blinking Dynamics (Sine wave glide, 160ms blink duration)
       const blinkCycle = time % 3.6;
@@ -406,6 +418,17 @@ export function Robot3DCanvas({
     antennaTip.position.set(0, 0.76, 0);
     headGroup.add(antennaTip);
 
+    // Glowing holographic data halo around head
+    const haloRingGeo = new THREE.TorusGeometry(0.58, 0.016, 16, 48);
+    haloRingGeo.rotateX(Math.PI / 2.3);
+    const haloRingMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.75,
+    });
+    const haloRing = new THREE.Mesh(haloRingGeo, haloRingMat);
+    headGroup.add(haloRing);
+
     // B. Torso (Aerodynamic Pod Body)
     const torsoGeo = new THREE.SphereGeometry(0.52, 36, 36);
     torsoGeo.scale(0.85, 1.1, 0.85);
@@ -420,12 +443,25 @@ export function Robot3DCanvas({
     coreMesh.position.set(0, -0.22, 0.44);
     robotRoot.add(coreMesh);
 
-    // C. Anti-gravity Hover Thruster Ring
+    // C. Anti-gravity Hover Thruster Ring & Soft Light Cone
     const thrusterRingGeo = new THREE.TorusGeometry(0.3, 0.045, 20, 36);
     thrusterRingGeo.rotateX(Math.PI / 2);
     const thrusterRing = new THREE.Mesh(thrusterRingGeo, glowMaterial);
     thrusterRing.position.set(0, -0.88, 0);
     robotRoot.add(thrusterRing);
+
+    // Pulsating anti-gravity energy beam
+    const beamGeo = new THREE.ConeGeometry(0.24, 0.45, 24, 1, true);
+    beamGeo.rotateX(Math.PI);
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.35,
+      side: THREE.DoubleSide,
+    });
+    const thrusterBeam = new THREE.Mesh(beamGeo, beamMat);
+    thrusterBeam.position.set(0, -1.05, 0);
+    robotRoot.add(thrusterBeam);
 
     // Articulated Teacher Hand Creator (Natural palm, 4 fingers, laser index pointer, thumb)
     const createHand = (isLeft: boolean) => {
@@ -576,10 +612,20 @@ export function Robot3DCanvas({
       reqId = requestAnimationFrame(animate);
 
       const t = clock.getElapsedTime();
-      const { mood: curMood, isSpeaking: curSpeaking, isPointing: curPointing, pointingDirection: curDir } = stateRef.current;
+      const { mood: curMood, isSpeaking: curSpeaking, isPointing: curPointing, pointingDirection: curDir, isWaving: curWaving } = stateRef.current;
 
       // Update face texture with pupil tracking & visemes
       drawFace(curMood, curSpeaking, t, curDir, curPointing);
+
+      // Rotate glowing holographic teacher halo
+      haloRing.rotation.z = t * 1.6;
+      haloRing.rotation.y = Math.sin(t * 0.9) * 0.2;
+      haloRingMat.opacity = 0.65 + Math.sin(t * 4) * 0.2;
+
+      // Thruster anti-gravity light beam pulse
+      const beamPulse = 1 + Math.sin(t * 12) * 0.15;
+      thrusterBeam.scale.set(beamPulse, 1 + Math.cos(t * 10) * 0.1, beamPulse);
+      beamMat.opacity = 0.22 + Math.sin(t * 14) * 0.12;
 
       // 1. Organic Floating & Hover Physics (Harmonic waves)
       const hoverY = Math.sin(t * 1.9) * 0.07 + Math.sin(t * 3.7) * 0.025 + (curSpeaking ? Math.sin(t * 5.5) * 0.02 : 0);
@@ -721,6 +767,39 @@ export function Robot3DCanvas({
           headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, curSpeaking ? Math.sin(t * 6.5) * 0.08 : 0, 0.15);
           robotRoot.rotation.y = THREE.MathUtils.lerp(robotRoot.rotation.y, 0.25, 0.12);
         }
+      } else if (curWaving) {
+        // --- FRIENDLY 3D HAND WAVE GESTURE ---
+        // Right Shoulder raises high
+        rightArmGroup.rotation.x = THREE.MathUtils.lerp(rightArmGroup.rotation.x, -0.85, 0.15);
+        rightArmGroup.rotation.z = THREE.MathUtils.lerp(rightArmGroup.rotation.z, 0.80, 0.15);
+        rightArmGroup.rotation.y = THREE.MathUtils.lerp(rightArmGroup.rotation.y, 0.35, 0.15);
+
+        // Right Elbow bends up at 90 degrees
+        rightElbowGroup.rotation.x = THREE.MathUtils.lerp(rightElbowGroup.rotation.x, -1.25, 0.18);
+        rightElbowGroup.rotation.z = THREE.MathUtils.lerp(rightElbowGroup.rotation.z, 0.25, 0.18);
+
+        // Right Hand swings back and forth in friendly wave
+        const waveSwing = Math.sin(t * 8.5) * 0.45;
+        rightHand.handGroup.rotation.z = THREE.MathUtils.lerp(rightHand.handGroup.rotation.z, waveSwing, 0.25);
+        rightHand.handGroup.rotation.x = THREE.MathUtils.lerp(rightHand.handGroup.rotation.x, 0.15, 0.18);
+
+        // Relaxed open fingers for warm waving
+        rightHand.indexGroup.rotation.x = THREE.MathUtils.lerp(rightHand.indexGroup.rotation.x, 0.05, 0.18);
+        rightHand.midGroup.rotation.x = THREE.MathUtils.lerp(rightHand.midGroup.rotation.x, 0.08, 0.18);
+        rightHand.ringGroup.rotation.x = THREE.MathUtils.lerp(rightHand.ringGroup.rotation.x, 0.12, 0.18);
+        rightHand.pinkyGroup.rotation.x = THREE.MathUtils.lerp(rightHand.pinkyGroup.rotation.x, 0.16, 0.18);
+        rightHand.thumbGroup.rotation.x = THREE.MathUtils.lerp(rightHand.thumbGroup.rotation.x, 0.25, 0.18);
+
+        // Left Arm rests gently
+        leftArmGroup.rotation.x = THREE.MathUtils.lerp(leftArmGroup.rotation.x, 0, 0.1);
+        leftArmGroup.rotation.z = THREE.MathUtils.lerp(leftArmGroup.rotation.z, -0.22, 0.1);
+        leftElbowGroup.rotation.set(0, 0, 0);
+
+        // Head tilts charmingly with speech
+        headGroup.rotation.z = THREE.MathUtils.lerp(headGroup.rotation.z, -0.15, 0.12);
+        headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, curSpeaking ? Math.sin(t * 3.5) * 0.15 : 0.08, 0.12);
+        headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, curSpeaking ? Math.sin(t * 6.0) * 0.08 : 0, 0.15);
+        robotRoot.rotation.y = THREE.MathUtils.lerp(robotRoot.rotation.y, 0, 0.08);
       } else if (curSpeaking) {
         // --- TEACHER GESTICULATING WITH BOTH HANDS (Articulated Forearms & Palms) ---
         // Left arm and elbow

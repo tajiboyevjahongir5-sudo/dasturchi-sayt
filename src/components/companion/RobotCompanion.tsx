@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { 
   Volume2, 
   VolumeX, 
@@ -8,11 +10,17 @@ import {
   X, 
   GraduationCap, 
   Pause, 
-  Play 
+  Play,
+  BookOpen,
+  Sparkles,
+  ArrowRight,
+  MessageSquare
 } from 'lucide-react';
 import { RobotAvatar, RobotMood } from './RobotAvatar';
 import { 
   getLessonGreeting, 
+  getSiteWelcomeScript,
+  getPageGuideScript,
   diagnoseErrorForSpeech, 
   getSuccessCelebration, 
   getHintSpeech, 
@@ -21,6 +29,7 @@ import {
   ComprehensiveLectureStep as LectureStep,
   RobotSpeechScript 
 } from './robot-dialogue';
+import { useCompanion, LessonCompanionData } from '@/components/providers/CompanionProvider';
 
 export type { LectureStep };
 
@@ -62,22 +71,33 @@ export interface RobotCompanionProps {
   autoStartOnMount?: boolean;
 }
 
-export function RobotCompanion({
-  lessonTitle = 'Dasturlash Darsi',
-  lessonObjective,
-  lessonAnalogy,
-  theory,
-  interactiveExample,
-  commonMistakes,
-  exercise,
-  lastError,
-  userCode = '',
-  isPassed = false,
-  hints = [],
-  hintsUsedCount = 0,
-  onHighlightLine,
-  autoStartOnMount = false,
-}: RobotCompanionProps) {
+export function RobotCompanion(props: RobotCompanionProps) {
+  const pathname = usePathname();
+  const { lessonData: contextLessonData, isGlobalCompanionActive } = useCompanion();
+
+  // Combine props with context (context takes precedence on lesson pages)
+  const isLessonPage = Boolean(pathname && pathname.includes('/lessons/'));
+  const activeData: LessonCompanionData | RobotCompanionProps = isLessonPage && contextLessonData 
+    ? contextLessonData 
+    : props;
+
+  const {
+    lessonTitle = isLessonPage ? 'Dasturlash Darsi' : undefined,
+    lessonObjective,
+    lessonAnalogy,
+    theory,
+    interactiveExample,
+    commonMistakes,
+    exercise,
+    lastError,
+    userCode = '',
+    isPassed = false,
+    hints = [],
+    hintsUsedCount = 0,
+    onHighlightLine,
+    autoStartOnMount = false,
+  } = activeData;
+
   // Navigation & Floating position state
   const [position, setPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -86,12 +106,16 @@ export function RobotCompanion({
   const [targetElementId, setTargetElementId] = useState<string | null>(null);
   const [targetLineNumber, setTargetLineNumber] = useState<number | null>(null);
 
+  // Waving animation state for natural greetings and celebrations
+  const [isWaving, setIsWaving] = useState(false);
+
   // Continuous Auto-Lecture State
   const [isLectureActive, setIsLectureActive] = useState(false);
   const [isLecturePaused, setIsLecturePaused] = useState(false);
   const [lectureStepIndex, setLectureStepIndex] = useState<number>(-1);
 
   const isLectureRunningRef = useRef(false);
+  const isLecturePausedRef = useRef(false);
   const activeStepRef = useRef<number>(-1);
   const lectureTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -100,9 +124,17 @@ export function RobotCompanion({
 
   // UI state
   const [isMinimized, setIsMinimized] = useState(false);
-  const [currentScript, setCurrentScript] = useState<RobotSpeechScript | null>(() => 
-    getLessonGreeting(lessonTitle, lessonObjective)
-  );
+  const [showWelcomeCard, setShowWelcomeCard] = useState(() => !isLessonPage);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+
+  // Speech script state
+  const [currentScript, setCurrentScript] = useState<RobotSpeechScript | null>(() => {
+    if (isLessonPage && lessonTitle) {
+      return getLessonGreeting(lessonTitle, lessonObjective);
+    }
+    return getSiteWelcomeScript();
+  });
+
   const [mood, setMood] = useState<RobotMood>('idle');
   const [flightTilt, setFlightTilt] = useState(0);
   const prevPosRef = useRef({ x: 0, y: 0 });
@@ -111,15 +143,16 @@ export function RobotCompanion({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [voice] = useState<'uz-UZ-SardorNeural'>('uz-UZ-SardorNeural');
+  const voice = 'uz-UZ-SardorNeural';
   const voiceRef = useRef<'uz-UZ-SardorNeural'>(voice);
-
-  useEffect(() => {
-    voiceRef.current = voice;
-  }, [voice]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const speakSessionIdRef = useRef(0);
+
+  // --- ZERO-PAUSE AUDIO PRE-BUFFERING CACHE ---
+  // In-memory cache of pre-fetched audio Object URLs
+  const audioCacheRef = useRef<Map<string, string>>(new Map());
+  const inFlightFetchesRef = useRef<Map<string, Promise<string | null>>>(new Map());
 
   // Stop any currently playing speech immediately
   const stopSpeaking = useCallback(() => {
@@ -136,7 +169,7 @@ export function RobotCompanion({
     setMood((m) => (m === 'talking' ? 'idle' : m));
   }, []);
 
-  // Cancel any browser speech synthesis on mount
+  // Cancel any speech synthesis on unmount
   useEffect(() => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -146,8 +179,55 @@ export function RobotCompanion({
     };
   }, [stopSpeaking]);
 
+  // High-performance TTS fetcher with automatic caching
+  const getAudioUrl = useCallback(async (rawText: string, voiceName: string = 'uz-UZ-SardorNeural'): Promise<string | null> => {
+    const clean = formatTextForSpeech(rawText);
+    if (!clean.trim()) return null;
+    const cacheKey = `${voiceName}:${clean}`;
+
+    // 1. Instant return if already pre-buffered in memory
+    if (audioCacheRef.current.has(cacheKey)) {
+      return audioCacheRef.current.get(cacheKey)!;
+    }
+
+    // 2. Return active in-flight promise to prevent duplicate requests
+    if (inFlightFetchesRef.current.has(cacheKey)) {
+      return inFlightFetchesRef.current.get(cacheKey)!;
+    }
+
+    // 3. Fetch from /api/tts and cache Object URL
+    const fetchPromise = (async () => {
+      try {
+        const res = await fetch(`/api/tts?text=${encodeURIComponent(clean)}&voice=${voiceName}`);
+        if (!res.ok) return null;
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        audioCacheRef.current.set(cacheKey, url);
+        return url;
+      } catch (err) {
+        console.warn('[Robo-Ustoz TTS] Fetch error:', err);
+        return null;
+      } finally {
+        inFlightFetchesRef.current.delete(cacheKey);
+      }
+    })();
+
+    inFlightFetchesRef.current.set(cacheKey, fetchPromise);
+    return fetchPromise;
+  }, []);
+
+  // Pre-buffer upcoming lecture steps into memory so transitions have ZERO delay
+  const prefetchLectureSteps = useCallback((steps: LectureStep[], fromIndex: number) => {
+    for (let i = fromIndex; i < Math.min(fromIndex + 2, steps.length); i++) {
+      if (steps[i]?.speechText) {
+        getAudioUrl(steps[i].speechText);
+      }
+    }
+  }, [getAudioUrl]);
+
   // Build the complete step-by-step master teacher lecture steps
-  const lectureSteps = React.useMemo<LectureStep[]>(() => {
+  const lectureSteps = useMemo<LectureStep[]>(() => {
+    if (!isLessonPage || !lessonTitle) return [];
     return generateComprehensiveLectureSteps({
       lessonTitle,
       learningObjective: lessonObjective,
@@ -157,7 +237,7 @@ export function RobotCompanion({
       commonMistakes,
       exercise,
     });
-  }, [lessonTitle, lessonObjective, lessonAnalogy, theory, interactiveExample, commonMistakes, exercise]);
+  }, [isLessonPage, lessonTitle, lessonObjective, lessonAnalogy, theory, interactiveExample, commonMistakes, exercise]);
 
   const lectureStepsRef = useRef<LectureStep[]>(lectureSteps);
   useEffect(() => {
@@ -167,7 +247,7 @@ export function RobotCompanion({
   // Ref forward declaration for auto-advance
   const advanceLectureRef = useRef<() => void>(() => {});
 
-  // Play natural voice via /api/tts with auto-advance capability
+  // Play natural voice via cached audio with zero pause auto-advance
   const speakText = useCallback(async (textToSpeak: string, forcedVoice?: 'uz-UZ-SardorNeural') => {
     if (isMuted || !textToSpeak.trim()) return;
 
@@ -182,29 +262,30 @@ export function RobotCompanion({
       window.speechSynthesis.cancel();
     }
 
-    setIsLoadingAudio(true);
-    setMood('talking');
-
     const cleanText = formatTextForSpeech(textToSpeak);
     const selectedVoice = forcedVoice || voiceRef.current;
+    const cacheKey = `${selectedVoice}:${cleanText}`;
+
+    // Only show loading indicator if not already cached in memory
+    const isCached = audioCacheRef.current.has(cacheKey);
+    if (!isCached) {
+      setIsLoadingAudio(true);
+    }
+    setMood('talking');
 
     try {
-      const res = await fetch(`/api/tts?text=${encodeURIComponent(cleanText)}&voice=${selectedVoice}`);
-      
+      const audioUrl = await getAudioUrl(cleanText, selectedVoice);
+
       if (sessionId !== speakSessionIdRef.current) {
         return;
       }
 
-      if (!res.ok) {
-        throw new Error('TTS API failed');
-      }
-
-      const audioBlob = await res.blob();
-      if (sessionId !== speakSessionIdRef.current) {
+      if (!audioUrl) {
+        setIsLoadingAudio(false);
+        setIsSpeaking(false);
+        setMood('idle');
         return;
       }
-
-      const audioUrl = URL.createObjectURL(audioBlob);
 
       if (!audioRef.current) {
         audioRef.current = new Audio();
@@ -214,23 +295,22 @@ export function RobotCompanion({
 
       audioRef.current.src = audioUrl;
 
-      // When audio finishes: AUTO-ADVANCE CONTINUOUSLY TO NEXT SECTION!
+      // When audio finishes: AUTO-ADVANCE SEAMLESSLY TO NEXT STEP (ZERO AWKWARD PAUSE!)
       audioRef.current.onended = () => {
         if (sessionId === speakSessionIdRef.current) {
           setIsSpeaking(false);
           setIsLoadingAudio(false);
           setMood('idle');
         }
-        URL.revokeObjectURL(audioUrl);
 
-        // AUTO-CONTINUE LECTURE TO NEXT SECTION (NO MANUAL BUTTON PRESS REQUIRED!)
-        if (isLectureRunningRef.current && !isLecturePaused) {
+        // AUTO-CONTINUE LECTURE TO NEXT SECTION (140ms realistic human breath pause instead of 3s lag!)
+        if (isLectureRunningRef.current && !isLecturePausedRef.current) {
           if (lectureTimeoutRef.current) clearTimeout(lectureTimeoutRef.current);
           lectureTimeoutRef.current = setTimeout(() => {
-            if (isLectureRunningRef.current && !isLecturePaused) {
+            if (isLectureRunningRef.current && !isLecturePausedRef.current) {
               advanceLectureRef.current();
             }
-          }, 1100);
+          }, 140);
         }
       };
 
@@ -240,17 +320,18 @@ export function RobotCompanion({
           setIsLoadingAudio(false);
           setMood('idle');
         }
-        URL.revokeObjectURL(audioUrl);
       };
 
       await audioRef.current.play();
       if (sessionId === speakSessionIdRef.current) {
         setIsSpeaking(true);
         setIsLoadingAudio(false);
+        setAutoplayBlocked(false);
       }
     } catch (err: unknown) {
-      if ((err as Error)?.name === 'AbortError') {
-        return;
+      if ((err as Error)?.name === 'NotAllowedError') {
+        // Browser autoplay restriction: show friendly tap-to-play badge
+        setAutoplayBlocked(true);
       }
       if (sessionId === speakSessionIdRef.current) {
         setIsSpeaking(false);
@@ -258,7 +339,7 @@ export function RobotCompanion({
         setMood('idle');
       }
     }
-  }, [isMuted, isLecturePaused]);
+  }, [isMuted, getAudioUrl]);
 
   // --- Dynamic Physical Positioning & Pointing Engine ---
   const updatePosition = useCallback(() => {
@@ -271,7 +352,6 @@ export function RobotCompanion({
         const rect = editorEl.getBoundingClientRect();
         const isMobile = window.innerWidth < 1024;
         
-        // Monaco editor line vertical offset (~19px per line)
         const lineOffset = 42 + Math.min(Math.max(targetLineNumber - 1, 0), 25) * 19;
         const targetY = rect.top + lineOffset;
 
@@ -303,8 +383,6 @@ export function RobotCompanion({
           targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
-        // Left column items -> Place robot near right edge of the card, pointing left
-        // Right column items -> Place robot near left edge of the editor, pointing right
         const isRightColumn = targetElementId === 'lesson-code-editor';
 
         let x: number;
@@ -317,7 +395,6 @@ export function RobotCompanion({
           x = Math.max(10, Math.min(window.innerWidth - 420, rect.right - 120));
           y = Math.max(80, Math.min(window.innerHeight - 340, rect.top + 20));
         } else {
-          // Left column (theory/analogy): hover right alongside the content without covering the right column!
           x = Math.max(10, Math.min(window.innerWidth - 420, rect.right - 80));
           y = Math.max(80, Math.min(window.innerHeight - 340, rect.top - 10));
         }
@@ -331,12 +408,12 @@ export function RobotCompanion({
 
     // 3. Default floating corner dock
     setIsPointing(false);
-    const defaultX = Math.max(10, window.innerWidth - (window.innerWidth < 640 ? 330 : 400) - 20);
+    const defaultX = Math.max(10, window.innerWidth - (window.innerWidth < 640 ? 330 : 380) - 20);
     const defaultY = Math.max(80, window.innerHeight - 320);
     setPosition({ x: defaultX, y: defaultY });
   }, [targetElementId, targetLineNumber, isDragging]);
 
-  // Update position on mount, resize, or scroll (deferred with rAF to satisfy React 19 rules)
+  // Update position on mount, resize, or scroll
   useEffect(() => {
     const handleUpdate = () => updatePosition();
     const rafId = requestAnimationFrame(handleUpdate);
@@ -380,13 +457,14 @@ export function RobotCompanion({
       setTargetElementId(null);
       setTargetLineNumber(null);
       setIsPointing(false);
+      setIsWaving(true);
 
       const doneScript: RobotSpeechScript = {
         id: 'lecture-finished',
         mood: 'celebrate',
         title: 'Dars tushuntirildi! 🌟',
-        speechText: `Mana darsning barcha asosiy qismlari bilan tanishdik. Endi muharrirda o‘z kodingizni yozib, darsni bajaring. Omad!`,
-        displayText: `🎉 **Dars tushuntirildi!**\nEndi amaliy topshiriqni bemalol bajarishingiz mumkin. Men yoningizdaman! 🚀`,
+        speechText: `Mana darsning barcha asosiy qismlari bilan tanishdik. Endi muharrirda o‘z kodingizni yozib, topshiriqni bajaring. Sizga ishonaman!`,
+        displayText: `🎉 **Dars to‘liq tushuntirildi!**\nEndi amaliy topshiriqni bemalol bajarishingiz mumkin. Men yoningizdaman! 🚀`,
       };
       setCurrentScript(doneScript);
       speakText(doneScript.speechText);
@@ -397,6 +475,7 @@ export function RobotCompanion({
     setIsLectureActive(true);
     setIsLecturePaused(false);
     isLectureRunningRef.current = true;
+    isLecturePausedRef.current = false;
     activeStepRef.current = stepIndex;
     setLectureStepIndex(stepIndex);
 
@@ -405,6 +484,7 @@ export function RobotCompanion({
     setPointingDirection(step.pointingDirection);
     setIsPointing(true);
     setIsMinimized(false);
+    setIsWaving(false);
 
     const script: RobotSpeechScript = {
       id: step.id,
@@ -415,8 +495,13 @@ export function RobotCompanion({
     };
 
     setCurrentScript(script);
+
+    // PRE-FETCH UPCOMING STEPS IMMEDIATELY IN THE BACKGROUND
+    prefetchLectureSteps(steps, stepIndex + 1);
+
+    // Play current step audio (instant if pre-fetched!)
     speakText(script.speechText);
-  }, [speakText]);
+  }, [prefetchLectureSteps, speakText]);
 
   useEffect(() => {
     advanceLectureRef.current = () => {
@@ -428,17 +513,24 @@ export function RobotCompanion({
   // Start complete lecture from step 0
   const startCompleteLecture = useCallback(() => {
     if (lectureTimeoutRef.current) clearTimeout(lectureTimeoutRef.current);
+    // Pre-warm step 0 and 1
+    const steps = lectureStepsRef.current;
+    if (steps.length > 0) {
+      prefetchLectureSteps(steps, 0);
+    }
     playLectureStep(0);
-  }, [playLectureStep]);
+  }, [prefetchLectureSteps, playLectureStep]);
 
   // Pause / Resume lecture
   const toggleLecturePause = () => {
     if (isLecturePaused) {
       setIsLecturePaused(false);
+      isLecturePausedRef.current = false;
       isLectureRunningRef.current = true;
       if (currentScript) speakText(currentScript.speechText);
     } else {
       setIsLecturePaused(true);
+      isLecturePausedRef.current = true;
       isLectureRunningRef.current = false;
       stopSpeaking();
       if (lectureTimeoutRef.current) clearTimeout(lectureTimeoutRef.current);
@@ -451,11 +543,13 @@ export function RobotCompanion({
     setIsLectureActive(false);
     setIsLecturePaused(false);
     isLectureRunningRef.current = false;
+    isLecturePausedRef.current = false;
     activeStepRef.current = -1;
     setLectureStepIndex(-1);
     setTargetElementId(null);
     setTargetLineNumber(null);
     setIsPointing(false);
+    setIsWaving(false);
     stopSpeaking();
   }, [stopSpeaking]);
 
@@ -470,25 +564,54 @@ export function RobotCompanion({
     };
   }, [startCompleteLecture]);
 
-  // 1. Initial Greeting on mount: Auto-starts teacher lecture only if autoStartOnMount is explicitly enabled
-  const hasGreetedRef = useRef(false);
+  // 1. AUTO-START ON "KURSNI BOSHLASH" OR LESSON MOUNT
+  const hasAutoStartedRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!autoStartOnMount) return;
-    if (hasGreetedRef.current) return;
-    hasGreetedRef.current = true;
+    if (!isLessonPage || !lessonTitle) return;
 
-    // Start complete continuous lecture automatically when entering the lesson!
-    const timer = setTimeout(() => {
-      startCompleteLecture();
-    }, 1500);
+    // Check if autostart was requested
+    const isAutostartParam = typeof window !== 'undefined' && (
+      new URLSearchParams(window.location.search).get('autostart') === '1' ||
+      autoStartOnMount ||
+      (activeData as LessonCompanionData)?.autostart === true
+    );
 
-    return () => {
-      clearTimeout(timer);
-      stopSpeaking();
-    };
-  }, [autoStartOnMount, startCompleteLecture, stopSpeaking]);
+    const lessonKey = `${pathname}:${lessonTitle}`;
+    if (hasAutoStartedRef.current === lessonKey) return;
 
-  // 2. React immediately when a Code Error occurs: FLY DIRECTLY TO ERROR LINE & POINT 👉
+    if (isAutostartParam || autoStartOnMount) {
+      hasAutoStartedRef.current = lessonKey;
+
+      // Settle DOM briefly so highlighters and code blocks are positioned
+      const timer = setTimeout(() => {
+        startCompleteLecture();
+      }, 400);
+
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+  }, [isLessonPage, lessonTitle, pathname, autoStartOnMount, activeData, startCompleteLecture]);
+
+  // 2. Global Site-Wide Guide & Welcome Mode (on non-lesson pages)
+  useEffect(() => {
+    if (isLessonPage) {
+      setIsWaving(false);
+      return;
+    }
+
+    // On non-lesson pages: wave hand and set contextual guide script
+    setIsWaving(true);
+    const guideScript = getPageGuideScript(pathname || '/');
+    setCurrentScript(guideScript);
+
+    // Stop lecture if was active
+    if (isLectureRunningRef.current) {
+      stopLecture();
+    }
+  }, [pathname, isLessonPage, stopLecture]);
+
+  // 3. React immediately when a Code Error occurs: FLY DIRECTLY TO ERROR LINE & POINT 👉
   const prevErrorRef = useRef<string | null>(null);
   useEffect(() => {
     if (lastError && lastError.message) {
@@ -504,6 +627,7 @@ export function RobotCompanion({
         setTargetLineNumber(errorLine);
         setPointingDirection('right');
         setIsPointing(true);
+        setIsWaving(false);
 
         const diag = diagnoseErrorForSpeech(lastError, userCode);
         setCurrentScript(diag);
@@ -519,12 +643,13 @@ export function RobotCompanion({
     }
   }, [lastError, userCode, onHighlightLine, speakText, stopLecture]);
 
-  // 3. React when student passes all tests: Celebrate with star eyes!
+  // 4. React when student passes all tests: Celebrate with star eyes & hand wave!
   const prevPassedRef = useRef(false);
   useEffect(() => {
     if (isPassed && !prevPassedRef.current) {
       prevPassedRef.current = true;
       stopLecture();
+      setIsWaving(true);
       const celebration = getSuccessCelebration(50);
       setCurrentScript(celebration);
       setMood('celebrate');
@@ -534,7 +659,7 @@ export function RobotCompanion({
     }
   }, [isPassed, speakText, stopLecture]);
 
-  // 4. React when a hint is revealed
+  // 5. React when a hint is revealed
   const prevHintCountRef = useRef(0);
   useEffect(() => {
     if (hintsUsedCount > prevHintCountRef.current && hints[hintsUsedCount - 1]) {
@@ -542,6 +667,7 @@ export function RobotCompanion({
       const hintObj = getHintSpeech(hints[hintsUsedCount - 1], hintsUsedCount);
       setCurrentScript(hintObj);
       setMood('talking');
+      setIsWaving(false);
       speakText(hintObj.speechText);
     }
   }, [hintsUsedCount, hints, speakText]);
@@ -593,6 +719,19 @@ export function RobotCompanion({
     }
   }, [position]);
 
+  // Play visitor welcome speech
+  const handlePlayWelcomeGreeting = () => {
+    const welcome = getSiteWelcomeScript();
+    setCurrentScript(welcome);
+    setIsWaving(true);
+    speakText(welcome.speechText);
+    setShowWelcomeCard(false);
+  };
+
+  if (!isGlobalCompanionActive) {
+    return null;
+  }
+
   return (
     <div
       ref={containerRef}
@@ -612,23 +751,50 @@ export function RobotCompanion({
       {isMinimized ? (
         <button
           type="button"
-          onClick={() => setIsMinimized(false)}
+          onClick={() => {
+            setIsMinimized(false);
+            if (!isLessonPage) setShowWelcomeCard(true);
+          }}
           className="group relative flex items-center gap-3 p-2 rounded-2xl bg-card/95 backdrop-blur-xl border-2 border-primary shadow-2xl hover:scale-105 transition-all duration-300 active:scale-95"
           title="Robo-Ustozni ochish"
         >
-          <RobotAvatar mood={mood} isSpeaking={isSpeaking} isPointing={isPointing} pointingDirection={pointingDirection} size={54} />
+          <RobotAvatar 
+            mood={mood} 
+            isSpeaking={isSpeaking} 
+            isPointing={isPointing} 
+            pointingDirection={pointingDirection} 
+            isWaving={isWaving}
+            size={54} 
+          />
           <div className="hidden sm:flex flex-col text-left pr-2">
             <span className="font-black text-xs text-foreground flex items-center gap-1">
               Robo-Ustoz 3D
               {isSpeaking && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />}
             </span>
-            <span className="text-[10px] text-muted-foreground">Jonli Ustoz</span>
+            <span className="text-[10px] text-muted-foreground">
+              {isLessonPage ? 'Jonli Dars Ustoz' : 'Sayt Hamrohingiz'}
+            </span>
           </div>
         </button>
       ) : (
-        /* 3D TEACHER & SLEEK FLOATING CONTROLS (NO TEXT MODAL!) */
         <div className="flex flex-col items-center gap-1 select-none">
-          {/* Visual Pointer Callout Badge (Small pointer label only, NO paragraph text) */}
+          {/* Autoplay blocked tap-to-listen button badge */}
+          {autoplayBlocked && (
+            <button
+              type="button"
+              onClick={() => {
+                setAutoplayBlocked(false);
+                if (currentScript) speakText(currentScript.speechText);
+                else if (isLectureActive) toggleLecturePause();
+              }}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs shadow-xl shadow-cyan-500/40 animate-pulse hover:scale-105 active:scale-95 transition-transform mb-1 cursor-pointer"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Sardor Ustozni eshitish uchun bosing 🔊</span>
+            </button>
+          )}
+
+          {/* Visual Pointer Callout Badge (Only shown when pointing to a code line or card) */}
           {isPointing && (
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500 text-slate-950 text-[11px] font-black shadow-lg shadow-cyan-500/40 animate-bounce mb-0.5">
               <span>{pointingDirection === 'left' ? '👈' : '👉'}</span>
@@ -638,34 +804,88 @@ export function RobotCompanion({
             </div>
           )}
 
+          {/* Global Site Welcome Card (Shown on non-lesson pages to greet visitors) */}
+          {!isLessonPage && showWelcomeCard && (
+            <div className="w-72 sm:w-80 p-3.5 rounded-2xl bg-slate-950/95 border border-cyan-500/30 shadow-2xl backdrop-blur-xl text-slate-200 mb-2 relative animate-in fade-in zoom-in duration-300">
+              <button
+                type="button"
+                onClick={() => setShowWelcomeCard(false)}
+                className="absolute top-2 right-2 p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                title="Yopish"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-sm">👋</span>
+                <h4 className="text-xs font-black text-cyan-300">Salom, Men Sardor Ustozman!</h4>
+              </div>
+
+              <p className="text-[11px] leading-relaxed text-slate-300 mb-3">
+                CodeQuest platformasiga xush kelibsiz! Bu yerda dasturlashni interaktiv muharrir va har bir darsda jonli tushuntirishlarim bilan 0 dan o‘rganasiz.
+              </p>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handlePlayWelcomeGreeting}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-cyan-500 text-slate-950 font-bold text-[11px] shadow-md shadow-cyan-500/30 hover:bg-cyan-400 active:scale-95 transition-all"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                  <span>Ovozli tanishuv</span>
+                </button>
+
+                <Link
+                  href="/courses"
+                  onClick={() => setShowWelcomeCard(false)}
+                  className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-[11px] border border-slate-700 active:scale-95 transition-all"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Kurslar</span>
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Freely Floating 3D Robot Mascot */}
           <div
             onClick={() => {
               if (isSpeaking) {
                 stopSpeaking();
-              } else if (isLectureActive) {
-                toggleLecturePause();
-              } else if (currentScript) {
-                speakText(currentScript.speechText);
+              } else if (isLessonPage) {
+                if (isLectureActive) {
+                  toggleLecturePause();
+                } else {
+                  startCompleteLecture();
+                }
+              } else {
+                handlePlayWelcomeGreeting();
               }
             }}
             className="relative cursor-pointer transition-transform hover:scale-105 active:scale-95"
-            title={isSpeaking ? "To'xtatish uchun bosing" : "Qayta tushuntirish uchun bosing"}
+            title={
+              isSpeaking 
+                ? "To'xtatish uchun bosing" 
+                : isLessonPage 
+                ? "Darsni to'liq tushuntirish uchun bosing" 
+                : "Sardor Ustoz bilan salomlashish"
+            }
           >
             <RobotAvatar 
               mood={mood} 
               isSpeaking={isSpeaking} 
               isPointing={isPointing} 
               pointingDirection={pointingDirection} 
+              isWaving={isWaving}
               size={165} 
             />
             {/* Soft glowing elliptical hover shadow projected below */}
             <div className="w-28 h-3.5 rounded-full bg-cyan-400/30 blur-md mx-auto -mt-3 animate-pulse" />
           </div>
 
-          {/* Compact Floating Controls Pill (Unobtrusive glassmorphic toolbar, NO TEXT BLOCKS) */}
+          {/* Compact Floating Controls Pill */}
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/90 border border-cyan-500/30 shadow-2xl backdrop-blur-xl text-slate-200 mt-1">
-            {/* Lecture Step Counter */}
+            {/* Lecture Step Counter (Only in Lesson mode) */}
             {isLectureActive && (
               <span className="text-[10px] font-black text-cyan-400 px-2 py-0.5 rounded-full bg-cyan-500/15 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
@@ -673,7 +893,7 @@ export function RobotCompanion({
               </span>
             )}
 
-            {/* Play / Pause / Replay */}
+            {/* Play / Pause / Start Button */}
             {isLectureActive ? (
               <button
                 type="button"
@@ -692,7 +912,7 @@ export function RobotCompanion({
               >
                 <Square className="w-3.5 h-3.5 fill-current" />
               </button>
-            ) : (
+            ) : isLessonPage ? (
               <button
                 type="button"
                 onClick={startCompleteLecture}
@@ -700,6 +920,15 @@ export function RobotCompanion({
                 title="Darsni to‘liq tushuntirish"
               >
                 <GraduationCap className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handlePlayWelcomeGreeting}
+                className="p-1.5 rounded-full hover:bg-slate-800 text-cyan-400 transition-colors"
+                title="Salomlashish va sayt haqida so‘rash"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
               </button>
             )}
 
@@ -731,7 +960,7 @@ export function RobotCompanion({
               {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
             </button>
 
-            {/* Stop Lecture */}
+            {/* Stop Lecture (if lecture active) */}
             {isLectureActive && (
               <button
                 type="button"
@@ -743,10 +972,27 @@ export function RobotCompanion({
               </button>
             )}
 
-            {/* Minimize */}
+            {/* Welcome card toggle on non-lesson pages */}
+            {!isLessonPage && (
+              <button
+                type="button"
+                onClick={() => setShowWelcomeCard(!showWelcomeCard)}
+                className={`p-1.5 rounded-full transition-colors ${
+                  showWelcomeCard ? 'text-cyan-400 bg-cyan-500/10' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+                title="Sayt ma’lumotini ko‘rish"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {/* Minimize button */}
             <button
               type="button"
-              onClick={() => setIsMinimized(true)}
+              onClick={() => {
+                setIsMinimized(true);
+                setShowWelcomeCard(false);
+              }}
               className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
               title="Yig‘ib qo‘yish"
             >

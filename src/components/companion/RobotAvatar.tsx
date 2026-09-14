@@ -10,6 +10,7 @@ interface RobotAvatarProps {
   isSpeaking?: boolean;
   isPointing?: boolean;
   pointingDirection?: 'left' | 'right';
+  isWaving?: boolean;
   size?: number;
   className?: string;
   forceSvg?: boolean;
@@ -22,6 +23,7 @@ export function RobotAvatar({
   isSpeaking = false,
   isPointing = false,
   pointingDirection = 'left',
+  isWaving = false,
   size = 72,
   className = '',
   forceSvg = false,
@@ -41,6 +43,7 @@ export function RobotAvatar({
           isSpeaking={isSpeaking}
           isPointing={isPointing}
           pointingDirection={pointingDirection}
+          isWaving={isWaving}
           size={size}
         />
       </div>

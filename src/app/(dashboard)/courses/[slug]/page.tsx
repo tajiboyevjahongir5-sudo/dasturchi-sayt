@@ -138,7 +138,7 @@ export default function CourseDetailPage({
             )}
 
             {nextLessonSlug && (
-              <Link href={`/courses/${course.slug}/lessons/${nextLessonSlug}`} className="w-full sm:w-auto">
+              <Link href={`/courses/${course.slug}/lessons/${nextLessonSlug}?autostart=1`} className="w-full sm:w-auto">
                 <Button variant="gradient" size="lg" className="w-full sm:w-auto font-bold gap-2 shadow-lg shadow-blue-500/20">
                   <Play className="w-4 h-4 fill-white" />
                   <span>

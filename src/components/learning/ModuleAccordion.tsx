@@ -55,7 +55,7 @@ export function ModuleAccordion({
                 return (
                   <Link
                     key={lesson.id}
-                    href={`/courses/${courseSlug}/lessons/${lesson.slug}`}
+                    href={`/courses/${courseSlug}/lessons/${lesson.slug}?autostart=1`}
                     className={`flex items-center justify-between p-2.5 rounded-lg text-xs transition-all ${
                       isActive
                         ? 'bg-primary/15 text-primary font-bold border border-primary/30'

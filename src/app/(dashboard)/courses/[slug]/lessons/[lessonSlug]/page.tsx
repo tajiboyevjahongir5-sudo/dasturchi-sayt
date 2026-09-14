@@ -29,7 +29,7 @@ import { ErrorExplanationPanel } from '@/components/editor/ErrorExplanationPanel
 import { HintPanel } from '@/components/editor/HintPanel';
 import { QuizCard } from '@/components/quiz/QuizCard';
 import { MentorPanel } from '@/components/mentor/MentorPanel';
-import { RobotCompanion } from '@/components/companion/RobotCompanion';
+import { useCompanion } from '@/components/providers/CompanionProvider';
 import { executeCode, executeMultiFileProject } from '@/lib/code-runner/runner';
 import { explainError } from '@/lib/error-explainer';
 import { useToast } from '@/components/providers/ToastProvider';
@@ -45,6 +45,7 @@ export default function LessonPage({
   const router = useRouter();
   const { toast } = useToast();
   const { refreshUser } = useAuth();
+  const { setLessonData } = useCompanion();
 
   // Lesson & exercise state
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -128,6 +129,45 @@ export default function LessonPage({
     }
     loadLesson();
   }, [lessonSlug]);
+
+  // Synchronize active lesson data with global Robo-Ustoz companion
+  useEffect(() => {
+    if (!lesson) {
+      setLessonData(null);
+      return;
+    }
+
+    const { content } = lesson;
+    const isAutostart = typeof window !== 'undefined' && (
+      new URLSearchParams(window.location.search).get('autostart') === '1' || true
+    );
+
+    setLessonData({
+      lessonTitle: lesson.title,
+      lessonObjective: content?.learningObjective,
+      lessonAnalogy: content?.realLifeAnalogy,
+      theory: content?.theory,
+      interactiveExample: content?.interactiveExample,
+      commonMistakes: content?.commonMistakes,
+      exercise: exercise ? {
+        title: exercise.title,
+        description: exercise.description,
+        instructions: exercise.instructions,
+        starterCode: exercise.starterCode,
+        expectedConcepts: exercise.expectedConcepts,
+      } : undefined,
+      lastError: codeErrors.length > 0 ? codeErrors[0] : null,
+      userCode,
+      isPassed,
+      hints: exercise?.hints || [],
+      hintsUsedCount,
+      autostart: isAutostart,
+    });
+
+    return () => {
+      setLessonData(null);
+    };
+  }, [lesson, exercise, codeErrors, userCode, isPassed, hintsUsedCount, setLessonData]);
 
   // Run Code
   const handleRunCode = async () => {
@@ -709,28 +749,6 @@ export default function LessonPage({
           hints: exercise?.hints || [],
           hintsUsedCount,
         }}
-      />
-
-      {/* Robo-Ustoz: Natural Human Uzbek Speech & Interactive Floating Companion */}
-      <RobotCompanion
-        lessonTitle={lesson.title}
-        lessonObjective={content.learningObjective}
-        lessonAnalogy={content.realLifeAnalogy}
-        theory={content.theory}
-        interactiveExample={content.interactiveExample}
-        commonMistakes={content.commonMistakes}
-        exercise={exercise ? {
-          title: exercise.title,
-          description: exercise.description,
-          instructions: exercise.instructions,
-          starterCode: exercise.starterCode,
-          expectedConcepts: exercise.expectedConcepts,
-        } : undefined}
-        lastError={codeErrors.length > 0 ? codeErrors[0] : null}
-        userCode={userCode}
-        isPassed={isPassed}
-        hints={exercise?.hints || []}
-        hintsUsedCount={hintsUsedCount}
       />
     </div>
   );

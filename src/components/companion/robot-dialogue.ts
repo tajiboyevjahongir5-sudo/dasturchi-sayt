@@ -522,11 +522,12 @@ export function getPageGuideScript(pathname: string, courseTitle?: string): Robo
       'html-asoslari': 'HTML asoslari',
       'css-asoslari': 'CSS asoslari',
       'javascript-asoslari': 'JavaScript asoslari',
+      'prompt-engineering': 'Prompt Engineering Asoslari',
       'frontend-web': 'Frontend veb dasturlash',
     };
     const title = courseTitle || knownCourseTitles[slug] || 'Ushbu kurs';
-    const speech = `Ajoyib tanlov! ${title} kursi sizga dasturlashni chuqur va amaliy o‘rgatadi. Kursni boshlash tugmasini bosing — dars boshlanishi bilan sizga har bir mavzuni to‘liq tushuntirib beraman!`;
-    const display = `🎯 **${title}** kursiga xush kelibsiz!\n\nPastdagi **«Kursni boshlash»** tugmasini bosing, dars ichida birgalikda kod yozamiz!`;
+    const speech = `Ajoyib tanlov! ${title} kursi sizga yangi bilimlarni chuqur va amaliy o‘rgatadi. Kursni boshlash tugmasini bosing — dars boshlanishi bilan sizga har bir mavzuni to‘liq tushuntirib beraman!`;
+    const display = `🎯 **${title}** kursiga xush kelibsiz!\n\nPastdagi **«Kursni boshlash»** tugmasini bosing, dars ichida birgalikda o‘rganamiz!`;
     return {
       id: `guide-course-${slug || 'detail'}`,
       mood: 'talking',
@@ -538,7 +539,7 @@ export function getPageGuideScript(pathname: string, courseTitle?: string): Robo
 
   // 2. Courses Catalog
   if (pathname === '/courses') {
-    const speech = `Bu yerda barcha asosiy amaliy kurslarimiz jamlangan: Dasturlashga kirish, HTML, CSS va JavaScript. O‘zingizga yoqqan kursni tanlab, o‘rganishni boshlang!`;
+    const speech = `Bu yerda barcha asosiy amaliy kurslarimiz jamlangan: Dasturlashga kirish, HTML, CSS, JavaScript va Prompt Engineering. O‘zingizga yoqqan kursni tanlab, o‘rganishni boshlang!`;
     const display = `📚 **Kurslar Katalogi**\n\nBoshlang‘ich dasturlash, veb sahifalar tuzilishi va JavaScript kurslarini ko‘rib chiqing.`;
     return {
       id: 'guide-courses',

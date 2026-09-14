@@ -161,6 +161,22 @@ export const SEED_COURSES: Course[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  {
+    id: 'course-prompt',
+    title: 'Prompt Engineering Asoslari',
+    slug: 'prompt-engineering',
+    description: 'Sun’iy intellekt (ChatGPT, Claude, Gemini) bilan professional darajada muloqot qilish, RTCO modeli, Few-Shot, CoT va dasturlashda AI unumdorligini 10 barobarga oshirish sirlari.',
+    shortDescription: 'Sun’iy intellektga mukammal so‘rov (prompt) yozish san’ati.',
+    level: 'boshlangich',
+    category: 'ai',
+    thumbnail: '/images/courses/prompt.jpg',
+    estimatedHours: 8,
+    published: true,
+    order: 5,
+    technologies: ['Prompt Engineering', 'LLM', 'RTCO Modeli', 'Few-Shot', 'Chain-of-Thought'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
 ];
 
 export const SEED_MODULES: Module[] = [
@@ -195,5 +211,27 @@ export const SEED_MODULES: Module[] = [
     title: '1-Modul: Jonli Veb (JavaScript)',
     description: 'O‘zgaruvchilar, funksiyalar va DOM boshqaruvi.',
     order: 1,
+  },
+  // Prompt Engineering modules
+  {
+    id: 'mod-prompt-1',
+    courseId: 'course-prompt',
+    title: '1-Modul: Sun’iy Intellekt va Prompt Falsafasi',
+    description: 'LLM qanday fikrlaydi va RTCO oltin modeli.',
+    order: 1,
+  },
+  {
+    id: 'mod-prompt-2',
+    courseId: 'course-prompt',
+    title: '2-Modul: Ilg‘or Prompt Strategiyalari',
+    description: 'Few-Shot va Chain-of-Thought usullari.',
+    order: 2,
+  },
+  {
+    id: 'mod-prompt-3',
+    courseId: 'course-prompt',
+    title: '3-Modul: Dasturlashda AI va Gallyutsinatsiya Nazorati',
+    description: 'Kod yozdirish, cheklovlar va xavfsiz promptlar.',
+    order: 3,
   },
 ];

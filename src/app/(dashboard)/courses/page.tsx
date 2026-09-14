@@ -41,6 +41,7 @@ export default function CoursesPage() {
     { id: 'all', label: 'Barchasi' },
     { id: 'kirish', label: 'Dasturlashga Kirish' },
     { id: 'frontend', label: 'Frontend Veb' },
+    { id: 'ai', label: 'Sun’iy Intellekt & Prompt' },
   ];
 
   const filteredCourses = courses.filter((c) => {

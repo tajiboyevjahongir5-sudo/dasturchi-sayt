@@ -46,7 +46,7 @@ export interface Course {
   description: string;
   shortDescription: string;
   level: "boshlangich" | "orta" | "professional";
-  category: "kirish" | "frontend" | "backend" | "database" | "fullstack" | "career";
+  category: "kirish" | "frontend" | "backend" | "database" | "fullstack" | "career" | "ai";
   thumbnail: string;
   estimatedHours: number;
   published: boolean;

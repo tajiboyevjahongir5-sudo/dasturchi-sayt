@@ -5,6 +5,7 @@ import { INTRO_LESSONS } from './lessons-intro';
 import { HTML_LESSONS } from './lessons-html';
 import { CSS_LESSONS } from './lessons-css';
 import { JS_LESSONS } from './lessons-js';
+import { PROMPT_LESSONS } from './lessons-prompt';
 import bcrypt from 'bcryptjs';
 
 export async function runSeed() {
@@ -72,6 +73,7 @@ export async function runSeed() {
     ...HTML_LESSONS,
     ...CSS_LESSONS,
     ...JS_LESSONS,
+    ...PROMPT_LESSONS,
   ];
 
   for (const group of allLessonGroups) {

@@ -871,40 +871,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
             </div>
           )}
 
-          {/* Interactive Comic Speech Bubble (Shows what Sardor is saying in real-time) */}
-          {isSpeaking && currentScript && (
-            <div className="w-72 sm:w-80 max-w-[calc(100vw-36px)] p-3.5 rounded-2xl rounded-br-xs bg-slate-950/95 border border-cyan-500/40 shadow-2xl backdrop-blur-xl text-slate-100 mb-1 animate-in fade-in zoom-in duration-200">
-              <div className="flex items-center justify-between gap-2 mb-1.5">
-                <span className="text-xs font-black text-cyan-400 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-                  Sardor Ustoz 👨‍🏫
-                </span>
-                <button
-                  type="button"
-                  onClick={stopSpeaking}
-                  className="text-slate-400 hover:text-white p-0.5 rounded transition-colors"
-                  title="Ovozni to‘xtatish"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <p className="text-xs leading-relaxed text-slate-200 font-medium">
-                {currentScript.speechText}
-              </p>
-              {!isLessonPage && (
-                <div className="flex items-center justify-between gap-2 mt-2.5 pt-2 border-t border-slate-800/80">
-                  <Link
-                    href="/courses"
-                    className="flex items-center gap-1 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
-                  >
-                    <BookOpen className="w-3.5 h-3.5" />
-                    <span>Kurslarni ko‘rish &rarr;</span>
-                  </Link>
-                  <span className="text-[10px] text-slate-400">CodeQuest Hamrohi</span>
-                </div>
-              )}
-            </div>
-          )}
+
 
           {/* Freely Floating 3D Robot Mascot */}
           <div

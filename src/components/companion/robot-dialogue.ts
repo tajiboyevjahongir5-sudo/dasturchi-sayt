@@ -187,15 +187,14 @@ export function generateComprehensiveLectureSteps(ctx: TeacherLectureContext): C
   const lowerCode = (ctx.interactiveExample?.code || '').toLowerCase();
   const concepts = (ctx.exercise?.expectedConcepts || []).map(c => c.toLowerCase());
 
-  const isVariables = lowerTitle.includes('o‘zgaruvchi') || lowerTitle.includes('ozgaruvchi') || 
-    lowerTitle.includes('turlar') || lowerTitle.includes('variable') || 
-    concepts.includes('const') || concepts.includes('let') || lowerCode.includes('const') || lowerCode.includes('let');
+  const isVariables = (lowerTitle.includes('o‘zgaruvchi') || lowerTitle.includes('ozgaruvchi') || 
+    lowerTitle.includes('variable')) && !lowerTitle.includes('prompt');
 
-  const isConditionals = lowerTitle.includes('shart') || lowerTitle.includes('if') || 
-    lowerTitle.includes('mantiq') || concepts.includes('if') || concepts.includes('else');
+  const isConditionals = (lowerTitle.includes('shart') || lowerTitle.includes('if') || 
+    lowerTitle.includes('mantiq')) && !lowerTitle.includes('prompt');
 
-  const isLoops = lowerTitle.includes('sikl') || lowerTitle.includes('takrorlan') || 
-    lowerTitle.includes('loop') || concepts.includes('for') || concepts.includes('while');
+  const isLoops = (lowerTitle.includes('sikl') || lowerTitle.includes('takrorlan') || 
+    lowerTitle.includes('loop')) && !lowerTitle.includes('prompt');
 
   const steps: ComprehensiveLectureStep[] = [];
 

@@ -12,9 +12,7 @@ import {
   Pause, 
   Play,
   BookOpen,
-  Sparkles,
-  ArrowRight,
-  MessageSquare
+  Sparkles
 } from 'lucide-react';
 import { RobotAvatar, RobotMood } from './RobotAvatar';
 import { 
@@ -98,10 +96,11 @@ export function RobotCompanion(props: RobotCompanionProps) {
     autoStartOnMount = false,
   } = activeData;
 
-  // Navigation & Floating position state (docked neatly in the bottom-right corner)
-  const [position, setPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  // Positioning: bottom-right docked by default, with drag & pointing capabilities
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [isPointing, setIsPointing] = useState(false);
+  const [pointingPosition, setPointingPosition] = useState<{ x: number; y: number } | null>(null);
   const [pointingDirection, setPointingDirection] = useState<'left' | 'right'>('left');
   const [targetElementId, setTargetElementId] = useState<string | null>(null);
   const [targetLineNumber, setTargetLineNumber] = useState<number | null>(null);
@@ -119,7 +118,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
   const activeStepRef = useRef<number>(-1);
   const lectureTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const dragStartRef = useRef<{ startX: number; startY: number; posX: number; posY: number }>({ startX: 0, startY: 0, posX: 0, posY: 0 });
+  const dragStartRef = useRef<{ startX: number; startY: number; offsetX: number; offsetY: number }>({ startX: 0, startY: 0, offsetX: 0, offsetY: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
   // UI state
@@ -136,7 +135,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
 
   const [mood, setMood] = useState<RobotMood>('talking');
   const [flightTilt, setFlightTilt] = useState(0);
-  const prevPosRef = useRef({ x: 0, y: 0 });
+  const prevDragRef = useRef({ x: 0, y: 0 });
 
   // Audio / Speech state
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -164,6 +163,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
     }
     setIsSpeaking(false);
     setIsLoadingAudio(false);
+    setAutoplayBlocked(false);
     setMood((m) => (m === 'talking' ? 'idle' : m));
   }, []);
 
@@ -176,30 +176,6 @@ export function RobotCompanion(props: RobotCompanionProps) {
       stopSpeaking();
     };
   }, [stopSpeaking]);
-
-  // Unlock audio on the very first gesture anywhere on document if browser blocked autoplay
-  const setupUnlockOnGesture = useCallback((audioEl: HTMLAudioElement) => {
-    const unlock = () => {
-      audioEl.play().then(() => {
-        setAutoplayBlocked(false);
-        setIsSpeaking(true);
-      }).catch(() => {});
-
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('click', unlock);
-      window.removeEventListener('keydown', unlock);
-      window.removeEventListener('touchstart', unlock);
-      window.removeEventListener('scroll', unlock);
-      window.removeEventListener('mousemove', unlock);
-    };
-
-    window.addEventListener('pointerdown', unlock, { once: true, passive: true });
-    window.addEventListener('click', unlock, { once: true, passive: true });
-    window.addEventListener('keydown', unlock, { once: true, passive: true });
-    window.addEventListener('touchstart', unlock, { once: true, passive: true });
-    window.addEventListener('scroll', unlock, { once: true, passive: true });
-    window.addEventListener('mousemove', unlock, { once: true, passive: true });
-  }, []);
 
   // High-performance TTS fetcher with automatic caching
   const getAudioUrl = useCallback(async (rawText: string, voiceName: string = 'uz-UZ-SardorNeural'): Promise<string | null> => {
@@ -354,13 +330,10 @@ export function RobotCompanion(props: RobotCompanionProps) {
         }
       } catch (playErr: unknown) {
         if ((playErr as Error)?.name === 'NotAllowedError') {
-          // Browser autoplay restriction: keep robot talking and listen for first touch/click/scroll to start voice
+          // Chrome autoplay restriction: keep robot talking animation and show unlock badge
           setAutoplayBlocked(true);
           setIsSpeaking(true);
           setIsLoadingAudio(false);
-          if (audioRef.current) {
-            setupUnlockOnGesture(audioRef.current);
-          }
         } else {
           throw playErr;
         }
@@ -372,10 +345,34 @@ export function RobotCompanion(props: RobotCompanionProps) {
         setMood('idle');
       }
     }
-  }, [isMuted, getAudioUrl, setupUnlockOnGesture]);
+  }, [isMuted, getAudioUrl]);
 
-  // --- Dynamic Physical Positioning & Pointing Engine ---
-  const updatePosition = useCallback(() => {
+  // UNLOCK AUDIO ON ANY USER CLICK OR TOUCH ANYWHERE ON THE ENTIRE PAGE
+  useEffect(() => {
+    const handleGlobalUserInteraction = () => {
+      if (audioRef.current && audioRef.current.paused && audioRef.current.src) {
+        audioRef.current.play().then(() => {
+          setAutoplayBlocked(false);
+          setIsSpeaking(true);
+        }).catch(() => {});
+      }
+    };
+
+    window.addEventListener('click', handleGlobalUserInteraction, { capture: true });
+    window.addEventListener('pointerdown', handleGlobalUserInteraction, { capture: true });
+    window.addEventListener('touchstart', handleGlobalUserInteraction, { capture: true });
+    window.addEventListener('keydown', handleGlobalUserInteraction, { capture: true });
+
+    return () => {
+      window.removeEventListener('click', handleGlobalUserInteraction, { capture: true });
+      window.removeEventListener('pointerdown', handleGlobalUserInteraction, { capture: true });
+      window.removeEventListener('touchstart', handleGlobalUserInteraction, { capture: true });
+      window.removeEventListener('keydown', handleGlobalUserInteraction, { capture: true });
+    };
+  }, []);
+
+  // --- Dynamic Physical Pointing Engine (For Lesson Lecture Steps) ---
+  const updatePointingPosition = useCallback(() => {
     if (isDragging) return;
 
     // 1. Pointing to an error line inside code editor
@@ -398,7 +395,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
         
         const y = Math.max(80, Math.min(window.innerHeight - 340, targetY - 40));
 
-        setPosition({ x, y });
+        setPointingPosition({ x, y });
         setIsPointing(true);
         setPointingDirection('right');
         return;
@@ -432,32 +429,27 @@ export function RobotCompanion(props: RobotCompanionProps) {
           y = Math.max(80, Math.min(window.innerHeight - 340, rect.top - 10));
         }
 
-        setPosition({ x, y });
+        setPointingPosition({ x, y });
         setIsPointing(true);
         setPointingDirection(isRightColumn ? 'right' : 'left');
         return;
       }
     }
 
-    // 3. Default floating corner dock (docked cleanly in bottom-right corner)
+    // Docked mode
     setIsPointing(false);
-    const defaultX = Math.max(10, window.innerWidth - (window.innerWidth < 640 ? 190 : 240));
-    const defaultY = Math.max(80, window.innerHeight - (window.innerWidth < 640 ? 250 : 270));
-    setPosition({ x: defaultX, y: defaultY });
+    setPointingPosition(null);
   }, [targetElementId, targetLineNumber, isDragging]);
 
-  // Update position on mount, resize, or scroll
   useEffect(() => {
-    const handleUpdate = () => updatePosition();
-    const rafId = requestAnimationFrame(handleUpdate);
+    const handleUpdate = () => updatePointingPosition();
     window.addEventListener('resize', handleUpdate);
     window.addEventListener('scroll', handleUpdate, { passive: true });
     return () => {
-      cancelAnimationFrame(rafId);
       window.removeEventListener('resize', handleUpdate);
       window.removeEventListener('scroll', handleUpdate);
     };
-  }, [updatePosition]);
+  }, [updatePointingPosition]);
 
   // Highlight active target element on page with neon halo
   useEffect(() => {
@@ -601,7 +593,6 @@ export function RobotCompanion(props: RobotCompanionProps) {
   useEffect(() => {
     if (!isLessonPage || !lessonTitle) return;
 
-    // Check if autostart was requested
     const isAutostartParam = typeof window !== 'undefined' && (
       new URLSearchParams(window.location.search).get('autostart') === '1' ||
       autoStartOnMount ||
@@ -614,7 +605,6 @@ export function RobotCompanion(props: RobotCompanionProps) {
     if (isAutostartParam || autoStartOnMount) {
       hasAutoStartedRef.current = lessonKey;
 
-      // Settle DOM briefly so highlighters and code blocks are positioned
       const timer = setTimeout(() => {
         startCompleteLecture();
       }, 400);
@@ -625,7 +615,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
     }
   }, [isLessonPage, lessonTitle, pathname, autoStartOnMount, activeData, startCompleteLecture]);
 
-  // 2. Global Site-Wide Guide & Welcome Mode: START SPEAKING IMMEDIATELY ON SITE ENTRY!
+  // 2. GLOBAL SITE-WIDE GUIDE: SPEAK IMMEDIATELY AS SOON AS USER ENTERS THE SITE!
   const hasSpokenWelcomeRef = useRef<string | null>(null);
   useEffect(() => {
     if (isLessonPage) {
@@ -633,26 +623,22 @@ export function RobotCompanion(props: RobotCompanionProps) {
       return;
     }
 
-    // On non-lesson pages: wave hand and set contextual guide script
     setIsWaving(true);
     const guideScript = getPageGuideScript(pathname || '/');
     setCurrentScript(guideScript);
 
-    // Stop lecture if was active
     if (isLectureRunningRef.current) {
       stopLecture();
     }
 
-    // "saytga kirishi bilan srazi gapirib boshlashi kerak"
-    // Speak immediately as soon as the visitor enters the site!
     const pathKey = pathname || '/';
     if (hasSpokenWelcomeRef.current !== pathKey) {
       hasSpokenWelcomeRef.current = pathKey;
 
-      // Small 300ms delay to let WebGL and page DOM settle, then speak immediately!
+      // Speak immediately right upon site arrival!
       const timer = setTimeout(() => {
         speakText(guideScript.speechText);
-      }, 350);
+      }, 250);
 
       return () => {
         clearTimeout(timer);
@@ -668,7 +654,6 @@ export function RobotCompanion(props: RobotCompanionProps) {
       if (prevErrorRef.current !== errorKey) {
         prevErrorRef.current = errorKey;
 
-        // Stop any active lecture
         stopLecture();
 
         const errorLine = lastError.line || 1;
@@ -729,8 +714,8 @@ export function RobotCompanion(props: RobotCompanionProps) {
     dragStartRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      posX: position.x,
-      posY: position.y,
+      offsetX: dragOffset.x,
+      offsetY: dragOffset.y,
     };
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
@@ -739,9 +724,9 @@ export function RobotCompanion(props: RobotCompanionProps) {
     if (!isDragging) return;
     const deltaX = e.clientX - dragStartRef.current.startX;
     const deltaY = e.clientY - dragStartRef.current.startY;
-    setPosition({
-      x: dragStartRef.current.posX + deltaX,
-      y: dragStartRef.current.posY + deltaY,
+    setDragOffset({
+      x: dragStartRef.current.offsetX + deltaX,
+      y: dragStartRef.current.offsetY + deltaY,
     });
   };
 
@@ -758,15 +743,15 @@ export function RobotCompanion(props: RobotCompanionProps) {
 
   // Calculate banking tilt during flight across screen
   useEffect(() => {
-    const dx = position.x - prevPosRef.current.x;
-    prevPosRef.current = position;
-    if (Math.abs(dx) > 15) {
+    const dx = dragOffset.x - prevDragRef.current.x;
+    prevDragRef.current = dragOffset;
+    if (Math.abs(dx) > 10) {
       const tilt = Math.max(-12, Math.min(12, dx * 0.05));
       setFlightTilt(tilt);
       const timer = setTimeout(() => setFlightTilt(0), 650);
       return () => clearTimeout(timer);
     }
-  }, [position]);
+  }, [dragOffset]);
 
   // Play visitor welcome speech manually if clicked
   const handlePlayWelcomeGreeting = () => {
@@ -780,20 +765,36 @@ export function RobotCompanion(props: RobotCompanionProps) {
     return null;
   }
 
+  // Determine container positioning style:
+  // When pointing in lesson: use absolute viewport coordinate
+  // When in default dock: pinned to bottom-right corner (never cropped or overflowing!)
+  const containerStyle: React.CSSProperties = isPointing && pointingPosition
+    ? {
+        position: 'fixed',
+        top: `${pointingPosition.y}px`,
+        left: `${pointingPosition.x}px`,
+        transform: `rotate(${flightTilt}deg)`,
+        touchAction: 'none',
+        zIndex: 50,
+      }
+    : {
+        position: 'fixed',
+        bottom: '16px',
+        right: '16px',
+        transform: `translate3d(${dragOffset.x}px, ${dragOffset.y}px, 0) rotate(${flightTilt}deg)`,
+        touchAction: 'none',
+        zIndex: 50,
+        transition: isDragging ? 'none' : 'transform 0.5s cubic-bezier(0.34, 1.25, 0.64, 1)',
+      };
+
   return (
     <div
       ref={containerRef}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      style={{
-        transform: `translate3d(${position.x}px, ${position.y}px, 0) rotate(${flightTilt}deg)`,
-        touchAction: 'none',
-        transition: isDragging ? 'none' : 'transform 0.72s cubic-bezier(0.34, 1.25, 0.64, 1)',
-      }}
-      className={`fixed top-0 left-0 z-50 transition-shadow ${
-        isDragging ? 'cursor-grabbing select-none' : 'cursor-default'
-      }`}
+      style={containerStyle}
+      className={`select-none ${isDragging ? 'cursor-grabbing' : 'cursor-default'}`}
     >
       {/* MINIMIZED FLOATING BADGE */}
       {isMinimized ? (
@@ -802,7 +803,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
           onClick={() => {
             setIsMinimized(false);
           }}
-          className="group relative flex items-center gap-3 p-2 rounded-2xl bg-card/95 backdrop-blur-xl border-2 border-primary shadow-2xl hover:scale-105 transition-all duration-300 active:scale-95"
+          className="group relative flex items-center gap-3 p-2 rounded-2xl bg-card/95 backdrop-blur-xl border-2 border-primary shadow-2xl hover:scale-105 transition-all duration-300 active:scale-95 cursor-pointer"
           title="Robo-Ustozni ochish"
         >
           <RobotAvatar 
@@ -824,24 +825,24 @@ export function RobotCompanion(props: RobotCompanionProps) {
           </div>
         </button>
       ) : (
-        <div className="flex flex-col items-center gap-1 select-none">
-          {/* Autoplay blocked tap-to-listen button badge */}
+        <div className="flex flex-col items-end gap-1.5">
+          {/* Autoplay blocked tap-to-listen button badge (Impossible to miss, 100% visible) */}
           {autoplayBlocked && (
             <button
               type="button"
               onClick={() => {
-                setAutoplayBlocked(false);
                 if (audioRef.current && audioRef.current.src) {
                   audioRef.current.play().then(() => {
+                    setAutoplayBlocked(false);
                     setIsSpeaking(true);
                   }).catch(() => {});
                 } else if (currentScript) {
                   speakText(currentScript.speechText);
                 }
               }}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs shadow-xl shadow-cyan-500/40 animate-pulse hover:scale-105 active:scale-95 transition-transform mb-1 cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white font-black text-xs shadow-2xl shadow-cyan-500/50 animate-bounce hover:scale-105 active:scale-95 transition-all mb-1 cursor-pointer border border-white/20"
             >
-              <Volume2 className="w-4 h-4 animate-bounce" />
+              <Volume2 className="w-4 h-4 animate-pulse" />
               <span>Sardor Ustoz gapirmoqda (Ovozni yoqish 🔊)</span>
             </button>
           )}
@@ -858,34 +859,34 @@ export function RobotCompanion(props: RobotCompanionProps) {
 
           {/* Interactive Comic Speech Bubble (Shows what Sardor is saying in real-time) */}
           {isSpeaking && currentScript && (
-            <div className="max-w-[270px] sm:max-w-[310px] p-3 rounded-2xl rounded-br-xs bg-slate-950/95 border border-cyan-500/40 shadow-2xl backdrop-blur-xl text-slate-100 mb-1 animate-in fade-in zoom-in duration-200">
+            <div className="w-72 sm:w-80 max-w-[calc(100vw-36px)] p-3.5 rounded-2xl rounded-br-xs bg-slate-950/95 border border-cyan-500/40 shadow-2xl backdrop-blur-xl text-slate-100 mb-1 animate-in fade-in zoom-in duration-200">
               <div className="flex items-center justify-between gap-2 mb-1.5">
-                <span className="text-[11px] font-black text-cyan-400 flex items-center gap-1.5">
+                <span className="text-xs font-black text-cyan-400 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
                   Sardor Ustoz 👨‍🏫
                 </span>
                 <button
                   type="button"
                   onClick={stopSpeaking}
-                  className="text-[10px] text-slate-400 hover:text-white p-0.5 rounded"
+                  className="text-slate-400 hover:text-white p-0.5 rounded transition-colors"
                   title="Ovozni to‘xtatish"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <p className="text-[11px] leading-relaxed text-slate-200 font-medium line-clamp-4">
+              <p className="text-xs leading-relaxed text-slate-200 font-medium">
                 {currentScript.speechText}
               </p>
               {!isLessonPage && (
-                <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-slate-800/80">
+                <div className="flex items-center justify-between gap-2 mt-2.5 pt-2 border-t border-slate-800/80">
                   <Link
                     href="/courses"
-                    className="flex items-center gap-1 text-[10px] font-bold text-cyan-400 hover:text-cyan-300"
+                    className="flex items-center gap-1 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
                   >
-                    <BookOpen className="w-3 h-3" />
+                    <BookOpen className="w-3.5 h-3.5" />
                     <span>Kurslarni ko‘rish &rarr;</span>
                   </Link>
-                  <span className="text-[9px] text-slate-400">CodeQuest Hamrohi</span>
+                  <span className="text-[10px] text-slate-400">CodeQuest Hamrohi</span>
                 </div>
               )}
             </div>
@@ -894,7 +895,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
           {/* Freely Floating 3D Robot Mascot */}
           <div
             onClick={() => {
-              if (isSpeaking) {
+              if (isSpeaking && !autoplayBlocked) {
                 stopSpeaking();
               } else if (isLessonPage) {
                 if (isLectureActive) {
@@ -907,13 +908,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
               }
             }}
             className="relative cursor-pointer transition-transform hover:scale-105 active:scale-95"
-            title={
-              isSpeaking 
-                ? "To'xtatish uchun bosing" 
-                : isLessonPage 
-                ? "Darsni to'liq tushuntirish uchun bosing" 
-                : "Sardor Ustoz bilan salomlashish"
-            }
+            title="Sardor Ustoz bilan salomlashish"
           >
             <RobotAvatar 
               mood={mood} 
@@ -921,14 +916,14 @@ export function RobotCompanion(props: RobotCompanionProps) {
               isPointing={isPointing} 
               pointingDirection={pointingDirection} 
               isWaving={isWaving}
-              size={165} 
+              size={155} 
             />
             {/* Soft glowing elliptical hover shadow projected below */}
             <div className="w-28 h-3.5 rounded-full bg-cyan-400/30 blur-md mx-auto -mt-3 animate-pulse" />
           </div>
 
           {/* Compact Floating Controls Pill */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/90 border border-cyan-500/30 shadow-2xl backdrop-blur-xl text-slate-200 mt-1">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/90 border border-cyan-500/30 shadow-2xl backdrop-blur-xl text-slate-200 mt-0.5">
             {/* Lecture Step Counter (Only in Lesson mode) */}
             {isLectureActive && (
               <span className="text-[10px] font-black text-cyan-400 px-2 py-0.5 rounded-full bg-cyan-500/15 flex items-center gap-1">

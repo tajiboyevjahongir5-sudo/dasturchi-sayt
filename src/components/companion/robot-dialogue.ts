@@ -497,13 +497,13 @@ export function getHintSpeech(hintText: string, hintIndex: number): RobotSpeechS
  */
 export function getSiteWelcomeScript(userName?: string): RobotSpeechScript {
   const nameGreeting = userName ? `Salom, ${userName}!` : 'Assalomu alaykum!';
-  const speech = `${nameGreeting} CodeQuest dasturlash akademiyasiga xush kelibsiz! Mening ismim Sardor — sizning shaxsiy 3D robo-ustozingizman! Bu yerda siz noldan boshlab zamonaviy veb dasturlashni, HTML, CSS va JavaScriptni amaliy kod yozib, qiziqarli o‘rganishingiz mumkin. Kurslarimizdan birini tanlang va birgalikda ajoyib dasturlar yaratamiz!`;
-  const display = `👋 **${nameGreeting} Men Sardor — sizning 3D Robo-Ustozingizman!**\n\nCodeQuest akademiyasiga xush kelibsiz. Bu yerda siz dasturlashni quruq yodlamasdan, brauzerda jonli kod yozib, noldan amaliy o‘rganasiz. Darslarda sizga yo‘l-yo‘riq ko‘rsatib boraman! 🚀`;
+  const speech = `${nameGreeting} CodeQuest dasturlash akademiyasiga xush kelibsiz! Mening ismim Jahongir — sizning shaxsiy 3D robo-ustozingizman! Bu yerda siz noldan boshlab zamonaviy veb dasturlashni, HTML, CSS va JavaScriptni amaliy kod yozib, qiziqarli o‘rganishingiz mumkin. Kurslarimizdan birini tanlang va birgalikda ajoyib dasturlar yaratamiz!`;
+  const display = `👋 **${nameGreeting} Men Jahongir — sizning 3D Robo-Ustozingizman!**\n\nCodeQuest akademiyasiga xush kelibsiz. Bu yerda siz dasturlashni quruq yodlamasdan, brauzerda jonli kod yozib, noldan amaliy o‘rganasiz. Darslarda sizga yo‘l-yo‘riq ko‘rsatib boraman! 🚀`;
 
   return {
     id: 'site-welcome',
     mood: 'celebrate',
-    title: 'Salom, Men Sardor Ustozman! 👨‍🏫',
+    title: 'Salom, Men Jahongir Ustozman! 👨‍🏫',
     speechText: formatTextForSpeech(speech),
     displayText: display,
   };

@@ -261,9 +261,9 @@ export default function DashboardPage() {
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 font-bold">
                   <Bot className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-base">3D Ustoz Sardor</h3>
+                <h3 className="font-bold text-base">3D Ustoz Jahongir</h3>
                 <p className="text-xs text-muted-foreground">
-                  Sardor bilan har bir mavzuni ovozli, imo-ishorali va jonli ravishda o‘rganing.
+                  Jahongir Ustoz bilan har bir mavzuni ovozli, imo-ishorali va jonli ravishda o‘rganing.
                 </p>
               </div>
               <Link href="/courses">

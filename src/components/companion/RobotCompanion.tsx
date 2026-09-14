@@ -864,7 +864,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
               className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white font-black text-xs shadow-2xl shadow-cyan-500/50 animate-bounce hover:scale-105 active:scale-95 transition-all mb-1 cursor-pointer border border-white/20"
             >
               <Volume2 className="w-4 h-4 animate-pulse" />
-              <span>Sardor Ustoz gapirmoqda (Ovozni yoqish 🔊)</span>
+              <span>Jahongir Ustoz gapirmoqda (Ovozni yoqish 🔊)</span>
             </button>
           )}
 
@@ -896,7 +896,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
               }
             }}
             className="relative cursor-pointer transition-transform hover:scale-105 active:scale-95"
-            title="Sardor Ustoz bilan salomlashish"
+            title="Jahongir Ustoz bilan salomlashish"
           >
             <RobotAvatar 
               mood={mood} 
@@ -959,17 +959,17 @@ export function RobotCompanion(props: RobotCompanionProps) {
               </button>
             )}
 
-            {/* Voice Indicator (Sardor - Robo-Ustoz) */}
+            {/* Voice Indicator (Jahongir - Robo-Ustoz) */}
             <div
               className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/20 text-cyan-300 flex items-center gap-1 select-none"
-              title="Robo-Ustoz (Sardor ovozi)"
+              title="Robo-Ustoz (Jahongir)"
             >
               {isLoadingAudio ? (
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
               ) : (
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
               )}
-              <span>Sardor 👨‍🏫</span>
+              <span>Jahongir 👨‍🏫</span>
             </div>
 
             {/* Mute button */}

@@ -98,7 +98,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
     autoStartOnMount = false,
   } = activeData;
 
-  // Navigation & Floating position state
+  // Navigation & Floating position state (docked neatly in the bottom-right corner)
   const [position, setPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [isPointing, setIsPointing] = useState(false);
@@ -107,7 +107,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
   const [targetLineNumber, setTargetLineNumber] = useState<number | null>(null);
 
   // Waving animation state for natural greetings and celebrations
-  const [isWaving, setIsWaving] = useState(false);
+  const [isWaving, setIsWaving] = useState(true);
 
   // Continuous Auto-Lecture State
   const [isLectureActive, setIsLectureActive] = useState(false);
@@ -124,7 +124,6 @@ export function RobotCompanion(props: RobotCompanionProps) {
 
   // UI state
   const [isMinimized, setIsMinimized] = useState(false);
-  const [showWelcomeCard, setShowWelcomeCard] = useState(() => !isLessonPage);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
 
   // Speech script state
@@ -135,7 +134,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
     return getSiteWelcomeScript();
   });
 
-  const [mood, setMood] = useState<RobotMood>('idle');
+  const [mood, setMood] = useState<RobotMood>('talking');
   const [flightTilt, setFlightTilt] = useState(0);
   const prevPosRef = useRef({ x: 0, y: 0 });
 
@@ -150,7 +149,6 @@ export function RobotCompanion(props: RobotCompanionProps) {
   const speakSessionIdRef = useRef(0);
 
   // --- ZERO-PAUSE AUDIO PRE-BUFFERING CACHE ---
-  // In-memory cache of pre-fetched audio Object URLs
   const audioCacheRef = useRef<Map<string, string>>(new Map());
   const inFlightFetchesRef = useRef<Map<string, Promise<string | null>>>(new Map());
 
@@ -178,6 +176,30 @@ export function RobotCompanion(props: RobotCompanionProps) {
       stopSpeaking();
     };
   }, [stopSpeaking]);
+
+  // Unlock audio on the very first gesture anywhere on document if browser blocked autoplay
+  const setupUnlockOnGesture = useCallback((audioEl: HTMLAudioElement) => {
+    const unlock = () => {
+      audioEl.play().then(() => {
+        setAutoplayBlocked(false);
+        setIsSpeaking(true);
+      }).catch(() => {});
+
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('click', unlock);
+      window.removeEventListener('keydown', unlock);
+      window.removeEventListener('touchstart', unlock);
+      window.removeEventListener('scroll', unlock);
+      window.removeEventListener('mousemove', unlock);
+    };
+
+    window.addEventListener('pointerdown', unlock, { once: true, passive: true });
+    window.addEventListener('click', unlock, { once: true, passive: true });
+    window.addEventListener('keydown', unlock, { once: true, passive: true });
+    window.addEventListener('touchstart', unlock, { once: true, passive: true });
+    window.addEventListener('scroll', unlock, { once: true, passive: true });
+    window.addEventListener('mousemove', unlock, { once: true, passive: true });
+  }, []);
 
   // High-performance TTS fetcher with automatic caching
   const getAudioUrl = useCallback(async (rawText: string, voiceName: string = 'uz-UZ-SardorNeural'): Promise<string | null> => {
@@ -272,6 +294,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
       setIsLoadingAudio(true);
     }
     setMood('talking');
+    setIsSpeaking(true);
 
     try {
       const audioUrl = await getAudioUrl(cleanText, selectedVoice);
@@ -322,24 +345,34 @@ export function RobotCompanion(props: RobotCompanionProps) {
         }
       };
 
-      await audioRef.current.play();
-      if (sessionId === speakSessionIdRef.current) {
-        setIsSpeaking(true);
-        setIsLoadingAudio(false);
-        setAutoplayBlocked(false);
+      try {
+        await audioRef.current.play();
+        if (sessionId === speakSessionIdRef.current) {
+          setIsSpeaking(true);
+          setIsLoadingAudio(false);
+          setAutoplayBlocked(false);
+        }
+      } catch (playErr: unknown) {
+        if ((playErr as Error)?.name === 'NotAllowedError') {
+          // Browser autoplay restriction: keep robot talking and listen for first touch/click/scroll to start voice
+          setAutoplayBlocked(true);
+          setIsSpeaking(true);
+          setIsLoadingAudio(false);
+          if (audioRef.current) {
+            setupUnlockOnGesture(audioRef.current);
+          }
+        } else {
+          throw playErr;
+        }
       }
     } catch (err: unknown) {
-      if ((err as Error)?.name === 'NotAllowedError') {
-        // Browser autoplay restriction: show friendly tap-to-play badge
-        setAutoplayBlocked(true);
-      }
       if (sessionId === speakSessionIdRef.current) {
         setIsSpeaking(false);
         setIsLoadingAudio(false);
         setMood('idle');
       }
     }
-  }, [isMuted, getAudioUrl]);
+  }, [isMuted, getAudioUrl, setupUnlockOnGesture]);
 
   // --- Dynamic Physical Positioning & Pointing Engine ---
   const updatePosition = useCallback(() => {
@@ -406,10 +439,10 @@ export function RobotCompanion(props: RobotCompanionProps) {
       }
     }
 
-    // 3. Default floating corner dock
+    // 3. Default floating corner dock (docked cleanly in bottom-right corner)
     setIsPointing(false);
-    const defaultX = Math.max(10, window.innerWidth - (window.innerWidth < 640 ? 330 : 380) - 20);
-    const defaultY = Math.max(80, window.innerHeight - 320);
+    const defaultX = Math.max(10, window.innerWidth - (window.innerWidth < 640 ? 190 : 240));
+    const defaultY = Math.max(80, window.innerHeight - (window.innerWidth < 640 ? 250 : 270));
     setPosition({ x: defaultX, y: defaultY });
   }, [targetElementId, targetLineNumber, isDragging]);
 
@@ -513,7 +546,6 @@ export function RobotCompanion(props: RobotCompanionProps) {
   // Start complete lecture from step 0
   const startCompleteLecture = useCallback(() => {
     if (lectureTimeoutRef.current) clearTimeout(lectureTimeoutRef.current);
-    // Pre-warm step 0 and 1
     const steps = lectureStepsRef.current;
     if (steps.length > 0) {
       prefetchLectureSteps(steps, 0);
@@ -593,7 +625,8 @@ export function RobotCompanion(props: RobotCompanionProps) {
     }
   }, [isLessonPage, lessonTitle, pathname, autoStartOnMount, activeData, startCompleteLecture]);
 
-  // 2. Global Site-Wide Guide & Welcome Mode (on non-lesson pages)
+  // 2. Global Site-Wide Guide & Welcome Mode: START SPEAKING IMMEDIATELY ON SITE ENTRY!
+  const hasSpokenWelcomeRef = useRef<string | null>(null);
   useEffect(() => {
     if (isLessonPage) {
       setIsWaving(false);
@@ -609,7 +642,23 @@ export function RobotCompanion(props: RobotCompanionProps) {
     if (isLectureRunningRef.current) {
       stopLecture();
     }
-  }, [pathname, isLessonPage, stopLecture]);
+
+    // "saytga kirishi bilan srazi gapirib boshlashi kerak"
+    // Speak immediately as soon as the visitor enters the site!
+    const pathKey = pathname || '/';
+    if (hasSpokenWelcomeRef.current !== pathKey) {
+      hasSpokenWelcomeRef.current = pathKey;
+
+      // Small 300ms delay to let WebGL and page DOM settle, then speak immediately!
+      const timer = setTimeout(() => {
+        speakText(guideScript.speechText);
+      }, 350);
+
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+  }, [pathname, isLessonPage, stopLecture, speakText]);
 
   // 3. React immediately when a Code Error occurs: FLY DIRECTLY TO ERROR LINE & POINT 👉
   const prevErrorRef = useRef<string | null>(null);
@@ -719,13 +768,12 @@ export function RobotCompanion(props: RobotCompanionProps) {
     }
   }, [position]);
 
-  // Play visitor welcome speech
+  // Play visitor welcome speech manually if clicked
   const handlePlayWelcomeGreeting = () => {
     const welcome = getSiteWelcomeScript();
     setCurrentScript(welcome);
     setIsWaving(true);
     speakText(welcome.speechText);
-    setShowWelcomeCard(false);
   };
 
   if (!isGlobalCompanionActive) {
@@ -753,7 +801,6 @@ export function RobotCompanion(props: RobotCompanionProps) {
           type="button"
           onClick={() => {
             setIsMinimized(false);
-            if (!isLessonPage) setShowWelcomeCard(true);
           }}
           className="group relative flex items-center gap-3 p-2 rounded-2xl bg-card/95 backdrop-blur-xl border-2 border-primary shadow-2xl hover:scale-105 transition-all duration-300 active:scale-95"
           title="Robo-Ustozni ochish"
@@ -784,13 +831,18 @@ export function RobotCompanion(props: RobotCompanionProps) {
               type="button"
               onClick={() => {
                 setAutoplayBlocked(false);
-                if (currentScript) speakText(currentScript.speechText);
-                else if (isLectureActive) toggleLecturePause();
+                if (audioRef.current && audioRef.current.src) {
+                  audioRef.current.play().then(() => {
+                    setIsSpeaking(true);
+                  }).catch(() => {});
+                } else if (currentScript) {
+                  speakText(currentScript.speechText);
+                }
               }}
               className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs shadow-xl shadow-cyan-500/40 animate-pulse hover:scale-105 active:scale-95 transition-transform mb-1 cursor-pointer"
             >
-              <Play className="w-3.5 h-3.5 fill-current" />
-              <span>Sardor Ustozni eshitish uchun bosing 🔊</span>
+              <Volume2 className="w-4 h-4 animate-bounce" />
+              <span>Sardor Ustoz gapirmoqda (Ovozni yoqish 🔊)</span>
             </button>
           )}
 
@@ -804,46 +856,38 @@ export function RobotCompanion(props: RobotCompanionProps) {
             </div>
           )}
 
-          {/* Global Site Welcome Card (Shown on non-lesson pages to greet visitors) */}
-          {!isLessonPage && showWelcomeCard && (
-            <div className="w-72 sm:w-80 p-3.5 rounded-2xl bg-slate-950/95 border border-cyan-500/30 shadow-2xl backdrop-blur-xl text-slate-200 mb-2 relative animate-in fade-in zoom-in duration-300">
-              <button
-                type="button"
-                onClick={() => setShowWelcomeCard(false)}
-                className="absolute top-2 right-2 p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                title="Yopish"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-sm">👋</span>
-                <h4 className="text-xs font-black text-cyan-300">Salom, Men Sardor Ustozman!</h4>
-              </div>
-
-              <p className="text-[11px] leading-relaxed text-slate-300 mb-3">
-                CodeQuest platformasiga xush kelibsiz! Bu yerda dasturlashni interaktiv muharrir va har bir darsda jonli tushuntirishlarim bilan 0 dan o‘rganasiz.
-              </p>
-
-              <div className="flex items-center gap-2">
+          {/* Interactive Comic Speech Bubble (Shows what Sardor is saying in real-time) */}
+          {isSpeaking && currentScript && (
+            <div className="max-w-[270px] sm:max-w-[310px] p-3 rounded-2xl rounded-br-xs bg-slate-950/95 border border-cyan-500/40 shadow-2xl backdrop-blur-xl text-slate-100 mb-1 animate-in fade-in zoom-in duration-200">
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <span className="text-[11px] font-black text-cyan-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                  Sardor Ustoz 👨‍🏫
+                </span>
                 <button
                   type="button"
-                  onClick={handlePlayWelcomeGreeting}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-cyan-500 text-slate-950 font-bold text-[11px] shadow-md shadow-cyan-500/30 hover:bg-cyan-400 active:scale-95 transition-all"
+                  onClick={stopSpeaking}
+                  className="text-[10px] text-slate-400 hover:text-white p-0.5 rounded"
+                  title="Ovozni to‘xtatish"
                 >
-                  <Volume2 className="w-3.5 h-3.5" />
-                  <span>Ovozli tanishuv</span>
+                  <X className="w-3.5 h-3.5" />
                 </button>
-
-                <Link
-                  href="/courses"
-                  onClick={() => setShowWelcomeCard(false)}
-                  className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-[11px] border border-slate-700 active:scale-95 transition-all"
-                >
-                  <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Kurslar</span>
-                </Link>
               </div>
+              <p className="text-[11px] leading-relaxed text-slate-200 font-medium line-clamp-4">
+                {currentScript.speechText}
+              </p>
+              {!isLessonPage && (
+                <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-slate-800/80">
+                  <Link
+                    href="/courses"
+                    className="flex items-center gap-1 text-[10px] font-bold text-cyan-400 hover:text-cyan-300"
+                  >
+                    <BookOpen className="w-3 h-3" />
+                    <span>Kurslarni ko‘rish &rarr;</span>
+                  </Link>
+                  <span className="text-[9px] text-slate-400">CodeQuest Hamrohi</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -926,7 +970,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
                 type="button"
                 onClick={handlePlayWelcomeGreeting}
                 className="p-1.5 rounded-full hover:bg-slate-800 text-cyan-400 transition-colors"
-                title="Salomlashish va sayt haqida so‘rash"
+                title="Salomlashish va qayta gapirish"
               >
                 <Sparkles className="w-3.5 h-3.5" />
               </button>
@@ -972,26 +1016,11 @@ export function RobotCompanion(props: RobotCompanionProps) {
               </button>
             )}
 
-            {/* Welcome card toggle on non-lesson pages */}
-            {!isLessonPage && (
-              <button
-                type="button"
-                onClick={() => setShowWelcomeCard(!showWelcomeCard)}
-                className={`p-1.5 rounded-full transition-colors ${
-                  showWelcomeCard ? 'text-cyan-400 bg-cyan-500/10' : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
-                title="Sayt ma’lumotini ko‘rish"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-              </button>
-            )}
-
             {/* Minimize button */}
             <button
               type="button"
               onClick={() => {
                 setIsMinimized(true);
-                setShowWelcomeCard(false);
               }}
               className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
               title="Yig‘ib qo‘yish"

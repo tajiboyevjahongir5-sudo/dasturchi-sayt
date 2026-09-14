@@ -45,7 +45,22 @@ export function formatTextForSpeech(text: string): string {
   t = t.replace(/\s*\(\s*preview\s*\)\s*/gi, ' ');
   t = t.replace(/\s*\(\s*console\s*\)\s*/gi, ' ');
 
-  // 4. Programming Languages & File Extensions -> Authentic Uzbek speech
+  // 4. Numbers, Digits & Ordinals in Uzbek (prevents TTS pronouncing '0' as English 'Oh')
+  t = t.replace(/\b0\s*[-–—]?\s*dan\b/gi, 'noldan');
+  t = t.replace(/\b0\s*[-–—]?\s*ga\b/gi, 'nolga');
+  t = t.replace(/\b0\s*[-–—]?\s*da\b/gi, 'nolda');
+  t = t.replace(/\b0\s*[-–—]?\s*ni\b/gi, 'nolni');
+  t = t.replace(/\b0\s*[-–—]?\s*chi\b/gi, 'nolinchi');
+  t = t.replace(/\b0\b/g, 'nol');
+  t = t.replace(/\b1\s*[-–—]?\s*qator(?:ga)?\b/gi, 'birinchi qatorga');
+  t = t.replace(/\b2\s*[-–—]?\s*qator(?:ga)?\b/gi, 'ikkinchi qatorga');
+  t = t.replace(/\b3\s*[-–—]?\s*qator(?:ga)?\b/gi, 'uchinchi qatorga');
+  t = t.replace(/\b4\s*[-–—]?\s*qator(?:ga)?\b/gi, 'to‘rtinchi qatorga');
+  t = t.replace(/\b5\s*[-–—]?\s*qator(?:ga)?\b/gi, 'beshinchi qatorga');
+  t = t.replace(/100\s*%/g, 'yuz foiz');
+  t = t.replace(/(\d+)\s*%/g, '$1 foiz');
+
+  // 5. Programming Languages & File Extensions -> Authentic Uzbek speech
   t = t.replace(/\bJavaScript\b/gi, 'Javaskript');
   t = t.replace(/\bTypeScript\b/gi, 'Taypskript');
   t = t.replace(/\bPython\b/gi, 'Payton');
@@ -483,8 +498,8 @@ export function getHintSpeech(hintText: string, hintIndex: number): RobotSpeechS
  */
 export function getSiteWelcomeScript(userName?: string): RobotSpeechScript {
   const nameGreeting = userName ? `Salom, ${userName}!` : 'Assalomu alaykum!';
-  const speech = `${nameGreeting} CodeQuest dasturlash akademiyasiga xush kelibsiz! Mening ismim Sardor — sizning shaxsiy 3D robo-ustozingizman! Bu yerda siz 0 dan boshlab zamonaviy veb dasturlashni, HTML, CSS va JavaScriptni amaliy kod yozib, qiziqarli o‘rganishingiz mumkin. Kurslarimizdan birini tanlang va birgalikda ajoyib dasturlar yaratamiz!`;
-  const display = `👋 **${nameGreeting} Men Sardor — sizning 3D Robo-Ustozingizman!**\n\nCodeQuest akademiyasiga xush kelibsiz. Bu yerda siz dasturlashni quruq yodlamasdan, brauzerda jonli kod yozib, 0 dan amaliy o‘rganasiz. Darslarda sizga yo‘l-yo‘riq ko‘rsatib boraman! 🚀`;
+  const speech = `${nameGreeting} CodeQuest dasturlash akademiyasiga xush kelibsiz! Mening ismim Sardor — sizning shaxsiy 3D robo-ustozingizman! Bu yerda siz noldan boshlab zamonaviy veb dasturlashni, HTML, CSS va JavaScriptni amaliy kod yozib, qiziqarli o‘rganishingiz mumkin. Kurslarimizdan birini tanlang va birgalikda ajoyib dasturlar yaratamiz!`;
+  const display = `👋 **${nameGreeting} Men Sardor — sizning 3D Robo-Ustozingizman!**\n\nCodeQuest akademiyasiga xush kelibsiz. Bu yerda siz dasturlashni quruq yodlamasdan, brauzerda jonli kod yozib, noldan amaliy o‘rganasiz. Darslarda sizga yo‘l-yo‘riq ko‘rsatib boraman! 🚀`;
 
   return {
     id: 'site-welcome',
@@ -537,7 +552,7 @@ export function getPageGuideScript(pathname: string, courseTitle?: string): Robo
 
   if (pathname === '/learning-path') {
     const speech = `Bu sizning ta’lim yo‘l xaritangiz! Dasturlashga kirishdan to professional darajagacha bosqichma-bosqich o‘rganishingiz uchun maxsus tuzilgan.`;
-    const display = `🗺️ **O‘quv Yo‘li (Roadmap)**\n\n0 dan Frontend mutaxassisi darajasigacha bo‘lgan barcha bosqichlar!`;
+    const display = `🗺️ **O‘quv Yo‘li (Roadmap)**\n\nNoldan Frontend mutaxassisi darajasigacha bo‘lgan barcha bosqichlar!`;
     return {
       id: 'guide-roadmap',
       mood: 'talking',

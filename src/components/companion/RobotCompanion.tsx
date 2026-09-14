@@ -626,42 +626,39 @@ export function RobotCompanion(props: RobotCompanionProps) {
     }
   }, [isLessonPage, lessonTitle, pathname, autoStartOnMount, activeData, startCompleteLecture]);
 
-  // 2. GLOBAL SITE-WIDE GUIDE: SPEAK WELCOME GREETING ONLY ONCE PER SESSION!
+  // 2. GLOBAL SITE-WIDE GUIDE: SPEAK SECTION GUIDE ONCE ON EACH PAGE NAVIGATION
+  const lastSpokenPathRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (isLessonPage) {
       setIsWaving(false);
       return;
     }
 
-    const guideScript = getPageGuideScript(pathname || '/');
+    const currentPath = pathname || '/';
+    const guideScript = getPageGuideScript(currentPath);
     setCurrentScript(guideScript);
 
     if (isLectureRunningRef.current) {
       stopLecture();
     }
 
-    // Check if user has already been greeted in this browser session
-    const hasGreetedSession = typeof window !== 'undefined' && sessionStorage.getItem('robo_greeted_session') === '1';
-
-    if (!hasGreetedSession) {
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('robo_greeted_session', '1');
-      }
-      setIsWaving(true);
-      // Speak welcome greeting once when first opening the site
-      const timer = setTimeout(() => {
-        speakText(guideScript.speechText);
-      }, 350);
-
-      return () => {
-        clearTimeout(timer);
-      };
-    } else {
-      // Already greeted earlier in session: do NOT speak automatically! Stay quiet and ready
-      setIsSpeaking(false);
-      setIsWaving(false);
-      setMood('idle');
+    // If we have already spoken for this exact page, do NOT speak again!
+    if (lastSpokenPathRef.current === currentPath) {
+      return;
     }
+
+    // New section/page navigated: speak once!
+    lastSpokenPathRef.current = currentPath;
+    setIsWaving(true);
+
+    const timer = setTimeout(() => {
+      speakText(guideScript.speechText);
+    }, 350);
+
+    return () => {
+      clearTimeout(timer);
+    };
   }, [pathname, isLessonPage, stopLecture, speakText]);
 
   // 3. React immediately when a Code Error occurs: FLY DIRECTLY TO ERROR LINE & POINT 👉

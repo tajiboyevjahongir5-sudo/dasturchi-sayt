@@ -17,7 +17,6 @@ import {
 import { RobotAvatar, RobotMood } from './RobotAvatar';
 import { 
   getLessonGreeting, 
-  getSiteWelcomeScript,
   getPageGuideScript,
   diagnoseErrorForSpeech, 
   getSuccessCelebration, 
@@ -130,7 +129,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
     if (isLessonPage && lessonTitle) {
       return getLessonGreeting(lessonTitle, lessonObjective);
     }
-    return getSiteWelcomeScript();
+    return getPageGuideScript(pathname || '/');
   });
 
   const [mood, setMood] = useState<RobotMood>('talking');
@@ -770,7 +769,7 @@ export function RobotCompanion(props: RobotCompanionProps) {
 
   // Play visitor welcome speech manually if clicked
   const handlePlayWelcomeGreeting = () => {
-    const welcome = getSiteWelcomeScript();
+    const welcome = getPageGuideScript(pathname || '/');
     setCurrentScript(welcome);
     setIsWaving(true);
     speakText(welcome.speechText);

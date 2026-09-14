@@ -514,20 +514,31 @@ export function getSiteWelcomeScript(userName?: string): RobotSpeechScript {
  * Contextual speech guide for specific pages
  */
 export function getPageGuideScript(pathname: string, courseTitle?: string): RobotSpeechScript {
-  if (pathname.startsWith('/courses/') && courseTitle) {
-    const speech = `Ajoyib tanlov! ${courseTitle} kursi sizga dasturlashni chuqur va amaliy o‘rgatadi. Kursni boshlash tugmasini bosing — dars boshlanishi bilan sizga mavzuni to‘liq tushuntirib beraman!`;
-    const display = `🎯 **${courseTitle}** kursiga xush kelibsiz!\n\nPastdagi **«Kursni boshlash»** tugmasini bosing, dars ichida birgalikda kod yozamiz!`;
+  // 1. Course Details Page (e.g. /courses/html-asoslari)
+  if (pathname.startsWith('/courses/') && !pathname.includes('/lessons/')) {
+    const slug = pathname.replace('/courses/', '').split('/')[0];
+    const knownCourseTitles: Record<string, string> = {
+      'dasturlashga-kirish': 'Dasturlashga kirish',
+      'html-asoslari': 'HTML asoslari',
+      'css-asoslari': 'CSS asoslari',
+      'javascript-asoslari': 'JavaScript asoslari',
+      'frontend-web': 'Frontend veb dasturlash',
+    };
+    const title = courseTitle || knownCourseTitles[slug] || 'Ushbu kurs';
+    const speech = `Ajoyib tanlov! ${title} kursi sizga dasturlashni chuqur va amaliy o‘rgatadi. Kursni boshlash tugmasini bosing — dars boshlanishi bilan sizga har bir mavzuni to‘liq tushuntirib beraman!`;
+    const display = `🎯 **${title}** kursiga xush kelibsiz!\n\nPastdagi **«Kursni boshlash»** tugmasini bosing, dars ichida birgalikda kod yozamiz!`;
     return {
-      id: `guide-course-${Date.now()}`,
+      id: `guide-course-${slug || 'detail'}`,
       mood: 'talking',
-      title: `${courseTitle} — Boshlashga tayyormisiz? 🚀`,
+      title: `${title} — Boshlashga tayyormisiz? 🚀`,
       speechText: formatTextForSpeech(speech),
       displayText: display,
     };
   }
 
+  // 2. Courses Catalog
   if (pathname === '/courses') {
-    const speech = `Bu yerda barcha asosiy amaliy kurslarimiz jamlangan: Dasturlashga kirish, HTML, CSS va JavaScript. O‘zingizga yoqqan kursni tanlab, boshlang!`;
+    const speech = `Bu yerda barcha asosiy amaliy kurslarimiz jamlangan: Dasturlashga kirish, HTML, CSS va JavaScript. O‘zingizga yoqqan kursni tanlab, o‘rganishni boshlang!`;
     const display = `📚 **Kurslar Katalogi**\n\nBoshlang‘ich dasturlash, veb sahifalar tuzilishi va JavaScript kurslarini ko‘rib chiqing.`;
     return {
       id: 'guide-courses',
@@ -538,6 +549,7 @@ export function getPageGuideScript(pathname: string, courseTitle?: string): Robo
     };
   }
 
+  // 3. User Dashboard
   if (pathname === '/dashboard') {
     const speech = `Boshqaruv panelingizga xush kelibsiz! Bu yerda kunlik streakingiz, to‘plangan XP ballaringiz va darslar progressini kuzatib borishingiz mumkin. Bugun kamida bitta darsni bajaring!`;
     const display = `📊 **Shaxsiy Dashboard**\n\nBugungi o‘quv ko‘rsatkichlaringiz va faolligingizni kuzatib boring! 🔥`;
@@ -550,8 +562,9 @@ export function getPageGuideScript(pathname: string, courseTitle?: string): Robo
     };
   }
 
+  // 4. Learning Path (Roadmap)
   if (pathname === '/learning-path') {
-    const speech = `Bu sizning ta’lim yo‘l xaritangiz! Dasturlashga kirishdan to professional darajagacha bosqichma-bosqich o‘rganishingiz uchun maxsus tuzilgan.`;
+    const speech = `Bu sizning ta’lim yo‘l xaritangiz! Dasturlashga kirishdan to professional Frontend mutaxassisi darajasigacha bosqichma-bosqich o‘rganishingiz uchun maxsus tuzilgan.`;
     const display = `🗺️ **O‘quv Yo‘li (Roadmap)**\n\nNoldan Frontend mutaxassisi darajasigacha bo‘lgan barcha bosqichlar!`;
     return {
       id: 'guide-roadmap',
@@ -562,6 +575,109 @@ export function getPageGuideScript(pathname: string, courseTitle?: string): Robo
     };
   }
 
+  // 5. Web Project Workspace
+  if (pathname === '/workspace') {
+    const speech = `Web Project Workspace bo‘limiga xush kelibsiz! Bu yerda siz HTML, CSS va JavaScript yordamida mustaqil veb loyihalar yaratishingiz, kodingiz natijasini jonli ko‘rishingiz va yangi g‘oyalaringizni erkin sinab ko‘rishingiz mumkin. Kodingizni yozing va natijasini darhol ko‘ring!`;
+    const display = `💻 **Web Project Workspace**\n\nHTML, CSS va JavaScript interaktiv kodlash maydoni. O‘z mustaqil loyihalaringizni noldan yarating va jonli sinab ko‘ring!`;
+    return {
+      id: 'guide-workspace',
+      mood: 'talking',
+      title: 'Web Project Workspace 💻',
+      speechText: formatTextForSpeech(speech),
+      displayText: display,
+    };
+  }
+
+  // 6. Achievements / Badges
+  if (pathname === '/achievements') {
+    const speech = `Yutuqlar bo‘limiga xush kelibsiz! Bu yerda darslarni muvaffaqiyatli bajarib to‘plagan barcha medallaringiz, kuboklaringiz va tajriba ballaringiz jamlangan. O‘qishda davom eting va yangi darajalarni zabt eting!`;
+    const display = `🏆 **Yutuqlar va Mukofotlar**\n\nTo‘plangan medallar, faollik seriyasi va dasturchilik darajangizni kuzatib boring!`;
+    return {
+      id: 'guide-achievements',
+      mood: 'celebrate',
+      title: 'Yutuqlar va Mukofotlar 🏆',
+      speechText: formatTextForSpeech(speech),
+      displayText: display,
+    };
+  }
+
+  // 7. User Profile
+  if (pathname === '/profile') {
+    const speech = `Shaxsiy profilingizga xush kelibsiz! Bu yerda siz o‘quv natijalaringiz, platformadagi umumiy faolligingiz va hisob ma’lumotlaringizni ko‘rishingiz hamda kerakli sozlamalarni o‘zgartirishingiz mumkin.`;
+    const display = `👤 **Shaxsiy Profil**\n\nHisob ma’lumotlari, ta’lim statistikasi va tizim sozlamalari.`;
+    return {
+      id: 'guide-profile',
+      mood: 'talking',
+      title: 'Shaxsiy Profil 👤',
+      speechText: formatTextForSpeech(speech),
+      displayText: display,
+    };
+  }
+
+  // 8. Learning Progress
+  if (pathname === '/progress') {
+    const speech = `Ta’lim statistikasi bo‘limiga xush kelibsiz! Bu yerda barcha kurslar bo‘yicha o‘zlashtirish ko‘rsatkichlaringiz, ishlangan darslar va haftalik faolligingiz grafigi aks etadi. O‘z natijalaringizni tahlil qilib boring!`;
+    const display = `📈 **Ta’lim Statistikasi**\n\nKurslarni o‘zlashtirish darajasi, yechilgan darslar va haftalik faollik tahlili.`;
+    return {
+      id: 'guide-progress',
+      mood: 'celebrate',
+      title: 'Ta’lim Statistikasi 📈',
+      speechText: formatTextForSpeech(speech),
+      displayText: display,
+    };
+  }
+
+  // 9. Admin Area
+  if (pathname.startsWith('/admin')) {
+    const speech = `Admin boshqaruv paneliga xush kelibsiz! Bu yerda platforma foydalanuvchilari, o‘quv kurslari, amaliy darslar va tizim auditini nazorat qilishingiz mumkin.`;
+    const display = `⚙️ **Admin Boshqaruv Paneli**\n\nKurslar, darslar, foydalanuvchilar va platforma auditini boshqarish.`;
+    return {
+      id: 'guide-admin',
+      mood: 'talking',
+      title: 'Admin Paneli ⚙️',
+      speechText: formatTextForSpeech(speech),
+      displayText: display,
+    };
+  }
+
+  // 10. Login / Register / Onboarding
+  if (pathname === '/login') {
+    const speech = `CodeQuest tizimiga kirish sahifasiga xush kelibsiz! O‘z hisobingizga kiring va darslarni davom ettiring!`;
+    const display = `🔐 **Tizimga Kirish**\n\nHisobingizga kiring va darslarni davom ettiring.`;
+    return {
+      id: 'guide-login',
+      mood: 'talking',
+      title: 'Tizimga Kirish 🔐',
+      speechText: formatTextForSpeech(speech),
+      displayText: display,
+    };
+  }
+
+  if (pathname === '/register') {
+    const speech = `CodeQuest platformasida ro‘yxatdan o‘ting va dasturchilik sayohatingizni boshlang! Men sizga har bir qadamda yordam beraman.`;
+    const display = `✨ **Ro‘yxatdan O‘tish**\n\nPlatformada ro‘yxatdan o‘ting va interaktiv darslarni boshlang!`;
+    return {
+      id: 'guide-register',
+      mood: 'celebrate',
+      title: 'Ro‘yxatdan O‘tish ✨',
+      speechText: formatTextForSpeech(speech),
+      displayText: display,
+    };
+  }
+
+  if (pathname === '/onboarding') {
+    const speech = `Xush kelibsiz! Keling, sizga eng mos o‘quv rejasini tanlash uchun bir nechta qisqa savollarga javob beramiz.`;
+    const display = `🚀 **Dastlabki Sozlash**\n\nO‘quv yo‘nalishingiz va darajangizni belgilang.`;
+    return {
+      id: 'guide-onboarding',
+      mood: 'talking',
+      title: 'Dastlabki Sozlash 🚀',
+      speechText: formatTextForSpeech(speech),
+      displayText: display,
+    };
+  }
+
+  // 11. Root landing page or default fallback
   return getSiteWelcomeScript();
 }
 

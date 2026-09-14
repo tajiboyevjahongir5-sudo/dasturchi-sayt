@@ -299,7 +299,9 @@ export function RobotCompanion(props: RobotCompanionProps) {
         if (sessionId === speakSessionIdRef.current) {
           setIsSpeaking(false);
           setIsLoadingAudio(false);
+          setAutoplayBlocked(false);
           setMood('idle');
+          setIsWaving(false);
         }
 
         // AUTO-CONTINUE LECTURE TO NEXT SECTION (140ms realistic human breath pause instead of 3s lag!)
@@ -310,6 +312,9 @@ export function RobotCompanion(props: RobotCompanionProps) {
               advanceLectureRef.current();
             }
           }, 140);
+        } else if (audioRef.current) {
+          // Clear audio source so it cannot be accidentally replayed by touch events
+          audioRef.current.src = '';
         }
       };
 
@@ -347,29 +352,35 @@ export function RobotCompanion(props: RobotCompanionProps) {
     }
   }, [isMuted, getAudioUrl]);
 
-  // UNLOCK AUDIO ON ANY USER CLICK OR TOUCH ANYWHERE ON THE ENTIRE PAGE
+  // UNLOCK AUDIO ONLY ONCE IF BLOCKED BY BROWSER POLICY (NEVER REPLAYS ON SUBSEQUENT TOUCHES)
+  const autoplayBlockedRef = useRef(false);
   useEffect(() => {
-    const handleGlobalUserInteraction = () => {
-      if (audioRef.current && audioRef.current.paused && audioRef.current.src) {
+    autoplayBlockedRef.current = autoplayBlocked;
+  }, [autoplayBlocked]);
+
+  useEffect(() => {
+    if (!autoplayBlocked) return;
+
+    const handleUnlockOnce = () => {
+      if (autoplayBlockedRef.current && audioRef.current && audioRef.current.src) {
         audioRef.current.play().then(() => {
           setAutoplayBlocked(false);
+          autoplayBlockedRef.current = false;
           setIsSpeaking(true);
         }).catch(() => {});
       }
     };
 
-    window.addEventListener('click', handleGlobalUserInteraction, { capture: true });
-    window.addEventListener('pointerdown', handleGlobalUserInteraction, { capture: true });
-    window.addEventListener('touchstart', handleGlobalUserInteraction, { capture: true });
-    window.addEventListener('keydown', handleGlobalUserInteraction, { capture: true });
+    window.addEventListener('click', handleUnlockOnce, { capture: true, once: true });
+    window.addEventListener('pointerdown', handleUnlockOnce, { capture: true, once: true });
+    window.addEventListener('touchstart', handleUnlockOnce, { capture: true, once: true });
 
     return () => {
-      window.removeEventListener('click', handleGlobalUserInteraction, { capture: true });
-      window.removeEventListener('pointerdown', handleGlobalUserInteraction, { capture: true });
-      window.removeEventListener('touchstart', handleGlobalUserInteraction, { capture: true });
-      window.removeEventListener('keydown', handleGlobalUserInteraction, { capture: true });
+      window.removeEventListener('click', handleUnlockOnce, { capture: true });
+      window.removeEventListener('pointerdown', handleUnlockOnce, { capture: true });
+      window.removeEventListener('touchstart', handleUnlockOnce, { capture: true });
     };
-  }, []);
+  }, [autoplayBlocked]);
 
   // --- Dynamic Physical Pointing Engine (For Lesson Lecture Steps) ---
   const updatePointingPosition = useCallback(() => {
@@ -615,15 +626,13 @@ export function RobotCompanion(props: RobotCompanionProps) {
     }
   }, [isLessonPage, lessonTitle, pathname, autoStartOnMount, activeData, startCompleteLecture]);
 
-  // 2. GLOBAL SITE-WIDE GUIDE: SPEAK IMMEDIATELY AS SOON AS USER ENTERS THE SITE!
-  const hasSpokenWelcomeRef = useRef<string | null>(null);
+  // 2. GLOBAL SITE-WIDE GUIDE: SPEAK WELCOME GREETING ONLY ONCE PER SESSION!
   useEffect(() => {
     if (isLessonPage) {
       setIsWaving(false);
       return;
     }
 
-    setIsWaving(true);
     const guideScript = getPageGuideScript(pathname || '/');
     setCurrentScript(guideScript);
 
@@ -631,18 +640,27 @@ export function RobotCompanion(props: RobotCompanionProps) {
       stopLecture();
     }
 
-    const pathKey = pathname || '/';
-    if (hasSpokenWelcomeRef.current !== pathKey) {
-      hasSpokenWelcomeRef.current = pathKey;
+    // Check if user has already been greeted in this browser session
+    const hasGreetedSession = typeof window !== 'undefined' && sessionStorage.getItem('robo_greeted_session') === '1';
 
-      // Speak immediately right upon site arrival!
+    if (!hasGreetedSession) {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('robo_greeted_session', '1');
+      }
+      setIsWaving(true);
+      // Speak welcome greeting once when first opening the site
       const timer = setTimeout(() => {
         speakText(guideScript.speechText);
-      }, 250);
+      }, 350);
 
       return () => {
         clearTimeout(timer);
       };
+    } else {
+      // Already greeted earlier in session: do NOT speak automatically! Stay quiet and ready
+      setIsSpeaking(false);
+      setIsWaving(false);
+      setMood('idle');
     }
   }, [pathname, isLessonPage, stopLecture, speakText]);
 

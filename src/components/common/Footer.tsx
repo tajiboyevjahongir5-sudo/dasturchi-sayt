@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Logo } from './Logo';
-import { Heart, GitBranch, Send } from 'lucide-react';
+import { Heart, Code2, Send } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -93,15 +93,13 @@ export function Footer() {
               </a>
             </li>
             <li>
-              <a
-                href="https://github.com/tajiboyevjahongir5-sudo/dasturchi-sayt"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/workspace"
                 className="flex items-center gap-1.5 hover:text-primary transition-colors"
               >
-                <GitBranch className="w-3.5 h-3.5 text-foreground" />
-                Ochiq kodli loyiha
-              </a>
+                <Code2 className="w-3.5 h-3.5 text-cyan-400" />
+                Web Workspace
+              </Link>
             </li>
           </ul>
         </div>

@@ -647,6 +647,13 @@ export function RobotCompanion(props: RobotCompanionProps) {
       return;
     }
 
+    // Har bir kurs sahifasiga kirganda (/courses/[slug]) avtomatik salomlashish/gapirish shart emas
+    if (currentPath.startsWith('/courses/')) {
+      lastSpokenPathRef.current = currentPath;
+      setIsWaving(false);
+      return;
+    }
+
     // New section/page navigated: speak once!
     lastSpokenPathRef.current = currentPath;
     setIsWaving(true);

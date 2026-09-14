@@ -198,16 +198,16 @@ export function generateComprehensiveLectureSteps(ctx: TeacherLectureContext): C
 
   const steps: ComprehensiveLectureStep[] = [];
 
-  // Step 1: Lesson Title & Teacher Welcome
+  // Step 1: Lesson Title
   steps.push({
     id: 'step-title',
     elementId: 'lesson-title-section',
     title: `1. Mavzu: ${cleanTitle}`,
     pointingDirection: 'left',
     speechText: formatTextForSpeech(
-      `Assalomu alaykum, aziz do‘stim! Men sizning dasturlash ustozingiz Robo-Ustozman. Bugun biz siz bilan birgalikda dasturlashning eng muhim poydevorlaridan biri bo‘lgan "${cleanTitle}" darsini to‘liq va chuqur o‘rganamiz. Diqqat bilan tinglang, har bir buyruq nima uchun va qanday yozilishini birma-bir tushuntirib beraman!`
+      `"${cleanTitle}" darsini boshlaymiz. Ushbu mavzuda har bir buyruq nima uchun va qanday yozilishini to‘liq o‘rganamiz.`
     ),
-    displayText: `🎓 **Mavzu: ${cleanTitle}**\n\nAssalomu alaykum! Bugungi darsimizda har bir kod nima uchun yozilishi va qanday ishlashini to‘liq tahlil qilamiz.`,
+    displayText: `🎓 **Mavzu: ${cleanTitle}**\n\nBugungi darsimizda har bir kod nima uchun yozilishi va qanday ishlashini to‘liq tahlil qilamiz.`,
   });
 
   // Step 2: Learning Objective & The "Why"
@@ -383,14 +383,14 @@ export function generateComprehensiveLectureSteps(ctx: TeacherLectureContext): C
 export function getLessonGreeting(lessonTitle: string, objective?: string): RobotSpeechScript {
   const cleanTitle = lessonTitle.replace(/^(\d+-Dars:?\s*)/i, '');
   const objectiveNote = objective ? ` Asosiy maqsadimiz: ${objective}.` : '';
-  const speechText = `Assalomu alaykum, do‘stim! Men sizning yordamchingiz Robo-Ustozman. Bugun birgalikda "${cleanTitle}" mavzusini o‘rganamiz.${objectiveNote} Agar darsni to‘liq tushunmoqchi bo‘lsangiz, yuqoridagi "Robo-Ustoz tushuntirsin" tugmasini bosing, men har bir kod nima uchun yozilishini batafsil tushuntirib beraman!`;
+  const speechText = `"${cleanTitle}" mavzusini o‘rganamiz.${objectiveNote} Darsni tushunish uchun "Robo-Ustoz tushuntirsin" tugmasini bosing, har bir kod nima uchun yozilishini tushuntirib beraman!`;
 
   return {
     id: 'lesson-greeting',
     mood: 'talking',
     title: 'Robo-Ustoz siz bilan!',
     speechText: formatTextForSpeech(speechText),
-    displayText: `Assalomu alaykum! Bugun **${cleanTitle}** darsini o‘rganamiz.${objective ? `\n\n🎯 *Maqsad: ${objective}*` : ''}\n\nDarsni to‘liq tushunish uchun yuqoridagi **"🎓 Robo-Ustoz tushuntirsin"** tugmasini bosing! 🚀`,
+    displayText: `Bugun **${cleanTitle}** darsini o‘rganamiz.${objective ? `\n\n🎯 *Maqsad: ${objective}*` : ''}\n\nDarsni to‘liq tushunish uchun yuqoridagi **"🎓 Robo-Ustoz tushuntirsin"** tugmasini bosing! 🚀`,
   };
 }
 
@@ -531,12 +531,12 @@ export function getPageGuideScript(pathname: string, courseTitle?: string): Robo
       'frontend-web': 'Frontend veb dasturlash',
     };
     const title = courseTitle || knownCourseTitles[slug] || 'Ushbu kurs';
-    const speech = `Ajoyib tanlov! ${title} kursi sizga yangi bilimlarni chuqur va amaliy o‘rgatadi. Kursni boshlash tugmasini bosing — dars boshlanishi bilan sizga har bir mavzuni to‘liq tushuntirib beraman!`;
-    const display = `🎯 **${title}** kursiga xush kelibsiz!\n\nPastdagi **«Kursni boshlash»** tugmasini bosing, dars ichida birgalikda o‘rganamiz!`;
+    const speech = `${title} kursi sizga yangi bilimlarni chuqur va amaliy o‘rgatadi. Kursni boshlash tugmasini bosing, dars boshlanishi bilan mavzuni tushuntirib beraman!`;
+    const display = `🎯 **${title}**\n\nPastdagi **«Kursni boshlash»** tugmasini bosing!`;
     return {
       id: `guide-course-${slug || 'detail'}`,
       mood: 'talking',
-      title: `${title} — Boshlashga tayyormisiz? 🚀`,
+      title: `${title} 🚀`,
       speechText: formatTextForSpeech(speech),
       displayText: display,
     };

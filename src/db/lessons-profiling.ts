@@ -82,8 +82,8 @@ export const PROFILING_LESSONS: { lesson: Lesson; exercise: Exercise }[] = [
           },
         ],
         summary: 'Siz DevTools Network paneli, Fetch/XHR filtrlari va HTTP so‘rov parametrlarini tahlil qilishni o‘rgandingiz.',
-        nextLessonSlug: 'api-endpoints-curl-postman',
-        nextLessonTitle: 'API Endpointlarini Aniqlash va cURL / Postman Simulyatsiyasi',
+        nextLessonSlug: 'devtools-sources-storage-console',
+        nextLessonTitle: 'DevTools Masterklass: Sources (Breakpoints), Application va Console',
       },
     },
     exercise: {
@@ -130,6 +130,144 @@ export const PROFILING_LESSONS: { lesson: Lesson; exercise: Exercise }[] = [
 
   {
     lesson: {
+      id: 'les-prof-1b',
+      moduleId: 'mod-prof-1',
+      courseId: 'course-profiling',
+      title: 'DevTools Masterklass: Sources, Breakpoints, Application va Console',
+      slug: 'devtools-sources-storage-console',
+      description: 'F12 to‘liq tahlil sirlari: Sources tabida kodni Pretty-Print ({}) qilish, XHR Breakpoints orqali so‘rovlarni to‘xtatish, Application (LocalStorage & Cookies) va Console da global obyektlarni tekshirish.',
+      objectives: [
+        'Sources tabida siqilgan (minified) kodni Pretty-Print orqali formatlash va o‘qish',
+        'XHR/fetch Breakpoints qo‘yib, tarmoqqa so‘rov chiqishidan oldin ma’lumotlarni ushlash',
+        'Application tabida LocalStorage va Cookies ni tahlil qilish hamda Console da global o‘zgaruvchilarni tekshirish',
+      ],
+      estimatedMinutes: 25,
+      order: 2,
+      published: true,
+      content: {
+        title: 'DevTools Masterklass: Sources, Breakpoints, Application va Console',
+        learningObjective: 'F12 ning barcha asosiy bo‘limlarini (Network dan tashqari Sources, Application, Console va Elements) birlashtirib, saytni to‘liq chuqur audit qilishni o‘rganish.',
+        realLifeAnalogy: 'Network tab — bu xatni pochtadan jo‘natilishini kuzatish bo‘lsa, Sources va Breakpoints — xat qog‘ozga yozilayotgan paytda yozuvchining qo‘lini to‘xtatib (Pauza), uning fikrlarini (o‘zgaruvchilar qiymatini) o‘qib olish demakdir! Application tab esa uning shaxsiy xotira daftarchasini tekshirishdir.',
+        theory: [
+          {
+            type: 'heading',
+            content: '1. Sources Tab va Pretty-Print ({})',
+          },
+          {
+            type: 'text',
+            content: 'Veb-saytlarda JavaScript kodi bitta uzun qatorda siqilgan (minified) bo‘ladi. Sources tabida pastdagi «{}» (Pretty print) tugmasini bossangiz, brauzer kodni formatlab, qatorlarga chiroyli ajratib beradi. Istalgan qator raqamiga bosib Breakpoint (to‘xtash nuqtasi) qo‘yishingiz mumkin.',
+          },
+          {
+            type: 'heading',
+            content: '2. XHR / Fetch Breakpoints — Eng Kuchli Qurol!',
+          },
+          {
+            type: 'text',
+            content: 'Sources tabining o‘ng panelida «XHR/fetch Breakpoints» bo‘limi bor. U yerga «+» bosib, URL ning bir qismini (masalan /api/) yozib qo‘ysangiz: sayt o‘sha API ga so‘rov yuborishi bilanoq butun JavaScript kodi muzlatiladi (Paused in debugger). Siz Scope panelida aynan o‘sha soniyada qanday parametrlar, parollar yoki tokenlar tayyorlanayotganini ko‘rishingiz mumkin!',
+          },
+          {
+            type: 'heading',
+            content: '3. Application Tab (LocalStorage & Cookies)',
+          },
+          {
+            type: 'text',
+            content: 'Application -> Storage bo‘limi saytning ichki xotirasidir:\n- LocalStorage: Sayt qanday tokenlar (jwt_token) yoki sozlamalarni saqlayapti.\n- Cookies: Sessiya identifikatorlari, ularda HttpOnly (yashirilgan) va Secure (faqat HTTPS) bayroqlari yoqilganmi-yo‘qligini tekshirish.\n- IndexedDB: Brauzerdagi katta oflayn ma’lumotlar bazasi.',
+          },
+          {
+            type: 'heading',
+            content: '4. Console va Elements Tablari',
+          },
+          {
+            type: 'text',
+            content: 'Console da window deb yozib Enter bossangiz, sayt yaratuvchilari ochiq qoldirgan global o‘zgaruvchilar (masalan window.__NEXT_DATA__ yoki window.currentUser) ko‘rinadi. Elements tabida esa yashirin formalar (<input type="hidden">) yoki disabled qilingan tugmalarni faollashtirib ko‘rish mumkin.',
+          },
+        ],
+        interactiveExample: {
+          title: 'F12 Xotira va Global Obyektlar Auditi',
+          description: 'Brauzer kontekstidan ochiq qolgan ma’lumotlarni tahlil qilish.',
+          language: 'javascript',
+          code: `const mockBrowserContext = {\n  localStorage: { theme: "dark", token: "eyJhbGciOi..." },\n  windowGlobals: { appVersion: "2.1", internalDebugMode: true },\n  cookies: [{ name: "session_id", httpOnly: true, secure: true }]\n};\n\nconst hasTokenInStorage = !!mockBrowserContext.localStorage.token;\nconst isDebugExposed = mockBrowserContext.windowGlobals.internalDebugMode === true;\n\nconsole.log("LocalStorage da token bor: " + hasTokenInStorage);\nconsole.log("Globalda debug ochiq: " + isDebugExposed);`,
+          expectedOutput: "LocalStorage da token bor: true\nGlobalda debug ochiq: true",
+          lineExplanations: {
+            2: 'Application -> LocalStorage xotirasi.',
+            3: 'Console -> window global o‘zgaruvchilari.',
+            4: 'Application -> Cookies tahlili.',
+          },
+        },
+        commonMistakes: [
+          {
+            title: 'Kodni formatlamasdan (Pretty-print siz) o‘qishga urinish',
+            wrongCode: '// 10 000 belgilik bitta qator kodda adashib ketish',
+            correctCode: '// Sources tabining pastki qismidagi {} tugmasini bosib formatlash',
+            explanation: 'Pretty-print barcha minified qatorlarni standart, o‘qiladigan JavaScript ko‘rinishiga keltiradi.',
+            language: 'javascript',
+          },
+        ],
+        quiz: [
+          {
+            id: 'q-prof-1b-1',
+            question: 'DevTools da sayt serverga so‘rov yuborayotgan soniyada kodni avtomatik to‘xtatib qo‘yish uchun nima ishlatiladi?',
+            type: 'multiple-choice',
+            options: ['XHR/fetch Breakpoints', 'CSS rangini o‘zgartirish', 'Sahifani yopish', 'F5 bosish'],
+            correctAnswer: 0,
+            explanation: 'XHR/fetch Breakpoint aynan ko‘rsatilgan URL ga so‘rov ketayotganda skript ijrosini to‘xtatadi (Pause qiladi).',
+          },
+          {
+            id: 'q-prof-1b-2',
+            question: 'Sources tabida bitta qatordan iborat siqilgan (minified) JavaScript kodini qatorlarga chiroyli ajratib beruvchi tugma qaysi?',
+            type: 'multiple-choice',
+            options: ['{} (Pretty Print)', 'X (Close)', 'Console', 'Clear log'],
+            correctAnswer: 0,
+            explanation: '{} tugmasi minified fayllarni chiroyli formatlab beradi.',
+          },
+        ],
+        summary: 'Siz F12 ning Sources, XHR Breakpoints, Application (Storage) va Console bo‘limlaridan professional foydalanishni o‘rgandingiz.',
+        nextLessonSlug: 'api-endpoints-curl-postman',
+        nextLessonTitle: 'API Endpointlarini Aniqlash va cURL / Postman Simulyatsiyasi',
+      },
+    },
+    exercise: {
+      id: 'ex-prof-1b',
+      lessonId: 'les-prof-1b',
+      title: 'DevTools Xotira va Global Obyektlar Auditorini Yaratish',
+      description: 'Brauzer kontekstini (localStorage, windowVariables, cookies) audit qilib, xavfsizlik hisobotini qaytaruvchi auditDevTools(context) funksiyasini yozing.',
+      instructions: [
+        'auditDevTools(context) funksiyasini yarating.',
+        'Agar context.localStorage da "token" yoki "jwt" kaliti bo‘lsa, massivga "STORAGE_TOKEN_FOUND" qo‘shing.',
+        'Agar context.windowVariables da "debug" yoki "apiKey" kaliti bo‘lsa, massivga "GLOBAL_VARIABLE_EXPOSED" qo‘shing.',
+        'Natijada topilgan xavflar massivini JSON qilib chiqaring.',
+      ],
+      starterCode: `function auditDevTools(context) {\n  const issues = [];\n  if (context.localStorage && (context.localStorage.token || context.localStorage.jwt)) {\n    issues.push("STORAGE_TOKEN_FOUND");\n  }\n  if (context.windowVariables && (context.windowVariables.debug || context.windowVariables.apiKey)) {\n    issues.push("GLOBAL_VARIABLE_EXPOSED");\n  }\n  return issues;\n}\n\nconst ctx = {\n  localStorage: { token: "abc.123" },\n  windowVariables: { debug: true }\n};\nconsole.log(JSON.stringify(auditDevTools(ctx)));\n`,
+      language: 'javascript',
+      difficulty: 'medium',
+      testCases: [
+        {
+          id: 'tc-prof-1b-1',
+          description: 'Storage va global leaklarni aniqlashi kerak',
+          expectedOutput: '["STORAGE_TOKEN_FOUND","GLOBAL_VARIABLE_EXPOSED"]',
+          type: 'output',
+        },
+      ],
+      hiddenTests: [
+        {
+          id: 'tc-prof-1b-2',
+          description: 'Toza kontekstda bo‘sh massiv qaytishi kerak',
+          expectedOutput: 'STORAGE_TOKEN_FOUND',
+          type: 'contains',
+        },
+      ],
+      hints: [
+        '1-bosqich: if (context.localStorage && (context.localStorage.token || context.localStorage.jwt)) issues.push("STORAGE_TOKEN_FOUND");',
+        '2-bosqich: if (context.windowVariables && (context.windowVariables.debug || context.windowVariables.apiKey)) issues.push("GLOBAL_VARIABLE_EXPOSED");',
+      ],
+      solutionExplanation: 'DevTools orqali brauzer xotirasi va global muhitini audit qilish tamoyili.',
+      passingScore: 100,
+      expectedConcepts: ['localStorage', 'windowVariables', 'push', 'JSON.stringify'],
+    },
+  },
+
+  {
+    lesson: {
       id: 'les-prof-2',
       moduleId: 'mod-prof-1',
       courseId: 'course-profiling',
@@ -142,7 +280,7 @@ export const PROFILING_LESSONS: { lesson: Lesson; exercise: Exercise }[] = [
         'Postman yoki Terminal orqali server javobini mustaqil tahlil qilish',
       ],
       estimatedMinutes: 20,
-      order: 2,
+      order: 3,
       published: true,
       content: {
         title: 'API Endpointlarini Aniqlash va cURL / Postman Simulyatsiyasi',

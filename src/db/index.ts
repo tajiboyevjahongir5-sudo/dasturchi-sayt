@@ -231,8 +231,8 @@ export const db = drizzle(sqlite, { schema });
 // Auto-seed check on initialization
 try {
   const courseCount = sqlite.prepare('SELECT COUNT(*) as count FROM courses').get() as { count: number };
-  const profilingCourse = sqlite.prepare("SELECT id FROM courses WHERE id = 'course-profiling'").get();
-  if (courseCount.count === 0 || !profilingCourse) {
+  const newLesson = sqlite.prepare("SELECT id FROM lessons WHERE id = 'les-prof-1b'").get();
+  if (courseCount.count === 0 || !newLesson) {
     // Dynamic import to avoid circular dependency
     import('./seed').then(m => m.runSeed()).catch(err => console.error('Seed error:', err));
   }

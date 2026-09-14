@@ -14,6 +14,9 @@ interface CourseThumbnailProps {
 
 export function getCourseFallbackSvg(slug?: string, title?: string): string {
   const text = `${slug || ''} ${title || ''}`.toLowerCase();
+  if (text.includes('profiling') || text.includes('tahlil') || text.includes('audit')) {
+    return '/images/courses/profiling.jpg';
+  }
   if (text.includes('terminal') || text.includes('cli') || text.includes('bash')) {
     return '/images/courses/terminal.jpg';
   }

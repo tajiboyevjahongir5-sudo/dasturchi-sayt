@@ -528,6 +528,7 @@ export function getPageGuideScript(pathname: string, courseTitle?: string): Robo
       'malumotlar-bazasi-sql': 'Ma’lumotlar Bazasi va SQL',
       'react-asoslari': 'React Asoslari',
       'kiberxavfsizlik-asoslari': 'Kiberxavfsizlik va Web Himoya',
+      'ilovalarni-tahlil-qilish': 'Veb va Mobil Ilovalarni Tahlil Qilish & Xavfsizlik Auditi',
       'frontend-web': 'Frontend veb dasturlash',
     };
     const title = courseTitle || knownCourseTitles[slug] || 'Ushbu kurs';

@@ -273,6 +273,22 @@ export const SEED_COURSES: Course[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  {
+    id: 'course-profiling',
+    title: 'Veb va Mobil Ilovalarni Tahlil Qilish & Xavfsizlik Auditi',
+    slug: 'ilovalarni-tahlil-qilish',
+    description: 'Veb va mobil ilovalarni professional darajada tahlil qilish: DevTools Network, API endpointlarni aniqlash va cURL simulyatsiyasi, mobil trafik va proksi (mitmproxy/Charles), JSON orqali DB sxemasini rekonstruksiya qilish, JWT/Cookie auditi va ochiq qolgan API kalitlarni himoyalash.',
+    shortDescription: 'DevTools, API tahlil, mobil arxitektura, DB rekonstruksiya va xavfsizlik auditi.',
+    level: 'orta',
+    category: 'security',
+    thumbnail: '/images/courses/profiling.jpg',
+    estimatedHours: 12,
+    published: true,
+    order: 12,
+    technologies: ['DevTools', 'Network Profiling', 'cURL & Postman', 'Mobile Inspection', 'mitmproxy', 'DB Reconstruction', 'JWT & Auth', 'Secrets Protection'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
 ];
 
 export const SEED_MODULES: Module[] = [
@@ -377,5 +393,34 @@ export const SEED_MODULES: Module[] = [
     title: '1-Modul: Veb Xavfsizlik va Xurujlardan Himoya',
     description: 'XSS, SQL Injection va parollarni xavfsiz saqlash.',
     order: 1,
+  },
+  // Profiling modules
+  {
+    id: 'mod-prof-1',
+    courseId: 'course-profiling',
+    title: '1-Modul: Veb-saytlar va Tarmoq So‘rovlari Tahlili',
+    description: 'DevTools Network, XHR/Fetch, so‘rov sarlavhalari va cURL simulyatsiyasi.',
+    order: 1,
+  },
+  {
+    id: 'mod-prof-2',
+    courseId: 'course-profiling',
+    title: '2-Modul: Mobil Ilovalar Arxitekturasi va Trafik Tahlili',
+    description: 'APK/IPA resurslari, ommaviy konfiguratsiyalar va proksi orqali trafikni kuzatish.',
+    order: 2,
+  },
+  {
+    id: 'mod-prof-3',
+    courseId: 'course-profiling',
+    title: '3-Modul: Backend va Ma’lumotlar Bazasi Sxemasini Tiklash',
+    description: 'JSON responslardan DB sxemasini tahlil qilish va JWT autentifikatsiya auditi.',
+    order: 3,
+  },
+  {
+    id: 'mod-prof-4',
+    courseId: 'course-profiling',
+    title: '4-Modul: Xavfsizlik Auditi va Maxfiy Ma’lumotlar Himoyasi',
+    description: 'Ochiq qolgan API kalitlarni topish, BFF proxy va zaif endpointlarni mustahkamlash.',
+    order: 4,
   },
 ];

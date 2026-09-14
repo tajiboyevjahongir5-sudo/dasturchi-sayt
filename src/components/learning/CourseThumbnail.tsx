@@ -14,6 +14,24 @@ interface CourseThumbnailProps {
 
 export function getCourseFallbackSvg(slug?: string, title?: string): string {
   const text = `${slug || ''} ${title || ''}`.toLowerCase();
+  if (text.includes('terminal') || text.includes('cli') || text.includes('bash')) {
+    return '/images/courses/terminal.jpg';
+  }
+  if (text.includes('git') || text.includes('github')) {
+    return '/images/courses/git.jpg';
+  }
+  if (text.includes('backend') || text.includes('server') || text.includes('node') || text.includes('express')) {
+    return '/images/courses/backend.jpg';
+  }
+  if (text.includes('database') || text.includes('sql') || text.includes('baza')) {
+    return '/images/courses/database.jpg';
+  }
+  if (text.includes('react')) {
+    return '/images/courses/react.jpg';
+  }
+  if (text.includes('security') || text.includes('xavfsizlik') || text.includes('himoya') || text.includes('kiber')) {
+    return '/images/courses/security.jpg';
+  }
   if (text.includes('prompt') || text.includes('ai') || text.includes('intellekt')) {
     return '/images/courses/prompt.jpg';
   }

@@ -39,8 +39,11 @@ export default function CoursesPage() {
 
   const filterTabs = [
     { id: 'all', label: 'Barchasi' },
-    { id: 'kirish', label: 'Dasturlashga Kirish' },
-    { id: 'frontend', label: 'Frontend Veb' },
+    { id: 'kirish', label: 'Dasturlashga Kirish & Git' },
+    { id: 'frontend', label: 'Frontend & React' },
+    { id: 'backend', label: 'Backend & Serverlar' },
+    { id: 'database', label: 'Ma’lumotlar Bazasi' },
+    { id: 'security', label: 'Kiberxavfsizlik' },
     { id: 'ai', label: 'Sun’iy Intellekt & Prompt' },
   ];
 

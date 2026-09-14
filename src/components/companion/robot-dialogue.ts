@@ -522,6 +522,12 @@ export function getPageGuideScript(pathname: string, courseTitle?: string): Robo
       'css-asoslari': 'CSS asoslari',
       'javascript-asoslari': 'JavaScript asoslari',
       'prompt-engineering': 'Prompt Engineering Asoslari',
+      'terminal-asoslari': 'Linux Terminal va Buyruqlar Satri',
+      'git-va-github': 'Git va GitHub: Versiyalar Nazorati',
+      'backend-asoslari': 'Backend va Serverlar Asoslari',
+      'malumotlar-bazasi-sql': 'Ma’lumotlar Bazasi va SQL',
+      'react-asoslari': 'React Asoslari',
+      'kiberxavfsizlik-asoslari': 'Kiberxavfsizlik va Web Himoya',
       'frontend-web': 'Frontend veb dasturlash',
     };
     const title = courseTitle || knownCourseTitles[slug] || 'Ushbu kurs';
@@ -538,8 +544,8 @@ export function getPageGuideScript(pathname: string, courseTitle?: string): Robo
 
   // 2. Courses Catalog
   if (pathname === '/courses') {
-    const speech = `Bu yerda barcha asosiy amaliy kurslarimiz jamlangan: Dasturlashga kirish, HTML, CSS, JavaScript va Prompt Engineering. O‘zingizga yoqqan kursni tanlab, o‘rganishni boshlang!`;
-    const display = `📚 **Kurslar Katalogi**\n\nBoshlang‘ich dasturlash, veb sahifalar tuzilishi va JavaScript kurslarini ko‘rib chiqing.`;
+    const speech = `Bu yerda zamonaviy dasturlashning barcha asosiy amaliy kurslari: Frontend, Backend, Terminal, Git, Ma’lumotlar bazasi, Kiberxavfsizlik va Sun’iy intellekt jamlangan. O‘zingizga yoqqan kursni tanlab, o‘rganishni boshlang!`;
+    const display = `📚 **Kurslar Katalogi**\n\nFrontend, Backend, Ma’lumotlar bazasi, Kiberxavfsizlik va Sun’iy Intellekt kurslarini ko‘rib chiqing.`;
     return {
       id: 'guide-courses',
       mood: 'talking',
